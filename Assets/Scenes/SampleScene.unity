@@ -176,6 +176,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 3716757034027749667, guid: 6c1fbdd377104bb40af00af8e0502819, type: 3}
+    - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b4fdcac382ee2a94c917e81969d3b98b, type: 2}
@@ -470,6 +474,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 649615865565989263, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Size.x
+      value: 13.78395
+      objectReference: {fileID: 0}
+    - target: {fileID: 649615865565989263, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Size.y
+      value: 6.4349174
+      objectReference: {fileID: 0}
+    - target: {fileID: 649615865565989263, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Offset.y
+      value: -2.1426115
+      objectReference: {fileID: 0}
     - target: {fileID: 2135931456406307072, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
       propertyPath: m_Name
       value: New board_0 (1)
@@ -518,6 +534,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 3716757034027749667, guid: 6c1fbdd377104bb40af00af8e0502819, type: 3}
     - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -675,6 +695,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 3716757034027749667, guid: 6c1fbdd377104bb40af00af8e0502819, type: 3}
+    - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c0b79a1940edc78439fe042801652110, type: 2}
@@ -698,6 +722,8 @@ GameObject:
   - component: {fileID: 1856313872}
   - component: {fileID: 1856313871}
   - component: {fileID: 1856313877}
+  - component: {fileID: 1856313878}
+  - component: {fileID: 1856313879}
   m_Layer: 0
   m_Name: Jogador
   m_TagString: Player
@@ -821,6 +847,22 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: 51cdc09e-54cb-4720-ae37-02912e20ed2e
     m_ActionName: UI/TrackedDeviceOrientation
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1856313878}
+        m_TargetAssemblyTypeName: Camuflar, Assembly-CSharp
+        m_MethodName: OnHide
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 57646a7a-89c1-4894-a6d7-9378f511ee4a
+    m_ActionName: 'Player/Hide[/Keyboard/c]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
@@ -873,17 +915,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.0077461004, y: -3.7545474}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 19.2, y: 10.8}
+    oldSize: {x: 5.52, y: 8}
     newSize: {x: 11.02, y: 16}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 3.509485, y: 0.5083604}
   m_EdgeRadius: 0
 --- !u!212 &1856313875
 SpriteRenderer:
@@ -934,7 +976,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 3512680024802470103, guid: ec9892e772a62954dafed054e8c9ed73, type: 3}
+  m_Sprite: {fileID: -1926802855976960366, guid: 10638d1807f73f34fb6535b0697608cb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -953,8 +995,8 @@ Transform:
   m_GameObject: {fileID: 1856313870}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.8584, y: 1.88, z: 0}
-  m_LocalScale: {x: 0.04274298, y: 0.13001256, z: 1}
+  m_LocalPosition: {x: 0.6018, y: 2.1468, z: 0}
+  m_LocalScale: {x: 0.21009035, y: 0.21725985, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -972,6 +1014,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MudarCor
   velocidadeMudaCor: 0.106
+--- !u!114 &1856313878
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856313870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e0d5fbafe507a245b8380a8a570dc0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Camuflar
+--- !u!95 &1856313879
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856313870}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 1ba692a9ad0f44e45991c7efa689647c, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1952825068736976802
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1028,6 +1104,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5716024018902752036, guid: 8212c73fd6a8ccf43ab895b55b392316, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 3716757034027749667, guid: 6c1fbdd377104bb40af00af8e0502819, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

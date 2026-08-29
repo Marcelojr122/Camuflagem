@@ -34,7 +34,7 @@ public class MudarCor : MonoBehaviour
     private void OnTriggerStay2D(Collider2D collision)
     {
         estaFora = false;
-        if (tempo >= velocidadeMudaCor && CompareTag("Tapete"))
+        if (tempo >= velocidadeMudaCor && CompareTag("Tapete") && collision.GetComponent<Camuflar>().SeCamuflar())
         {
             Debug.Log("Está no circulo");
 
