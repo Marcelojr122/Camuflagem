@@ -297,7 +297,9 @@ MonoBehaviour:
   velocidadePerseguicao: 2.35
   distanciaPatrulha: 8
   intervaloTrocaDestino: 2.4
+  raioCaptura: 0.65
   direcaoInicial: {x: 1, y: 0}
-  distanciaVisao: 18
-  anguloVisao: 105
+  distanciaVisao: 28
+  anguloVisao: 28
+  velocidadeGiroVisao: 140
   toleranciaHue: 2

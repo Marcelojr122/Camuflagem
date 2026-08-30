@@ -311,21 +311,6 @@ Camera:
   m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &519420033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 519420028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1a846e65593734dabcf2d51e7c59ab, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::CameraSeguirJogador
-  alvo: {fileID: 1856313876}
-  deslocamento: {x: 0, y: 0, z: -10}
-  suavizacao: 4
 --- !u!4 &519420032
 Transform:
   m_ObjectHideFlags: 0
@@ -341,6 +326,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1a846e65593734dabcf2d51e7c59ab, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CameraSeguirJogador
+  alvo: {fileID: 1856313876}
+  deslocamento: {x: 0, y: 0, z: -10}
+  suavizacao: 2
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -780,6 +780,14 @@ PrefabInstance:
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 4377177205796178647, guid: f3855360a5557034fa4fd74308cfbc96, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4377177205796178647, guid: f3855360a5557034fa4fd74308cfbc96, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4377177205796178647, guid: f3855360a5557034fa4fd74308cfbc96, type: 3}
       propertyPath: m_LocalPosition.x
       value: 5.6
       objectReference: {fileID: 0}
@@ -1181,6 +1189,14 @@ PrefabInstance:
     - target: {fileID: 1398951537225469179, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
       propertyPath: m_Name
       value: Cobra
+      objectReference: {fileID: 0}
+    - target: {fileID: 2110952719066139504, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2110952719066139504, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 2110952719066139504, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
       propertyPath: m_LocalPosition.x

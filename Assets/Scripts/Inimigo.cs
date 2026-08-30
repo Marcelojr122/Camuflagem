@@ -13,20 +13,24 @@ public class Inimigo : MonoBehaviour
     public float velocidadePerseguicao = 3f;
     public float distanciaPatrulha = 5f;
     public float intervaloTrocaDestino = 2.5f;
+    public float raioCaptura = 0.65f;
     public Vector2 direcaoInicial = Vector2.right;
 
     [Header("Visao")]
     public float distanciaVisao = 5f;
-    [Range(10f, 160f)] public float anguloVisao = 45f;
+    [Range(10f, 160f)] public float anguloVisao = 28f;
+    public float velocidadeGiroVisao = 140f;
     public float toleranciaHue = 2f;
 
     private Rigidbody2D corpo;
+    private Collider2D colisorProprio;
     private Animator animator;
     private Transform alvo;
     private Vector2 centroMovimento;
     private Vector2 destinoAleatorio;
     private Vector2 direcaoAtual;
     private Vector2 direcaoVisao;
+    private bool perseguindoAlvo;
     private float tempoNovoDestino;
     private Mesh malhaVisao;
     private MeshFilter filtroVisao;
@@ -39,8 +43,8 @@ public class Inimigo : MonoBehaviour
         corpo.gravityScale = 0f;
         corpo.freezeRotation = true;
 
-        Collider2D colisor = GetComponent<Collider2D>();
-        colisor.isTrigger = true;
+        colisorProprio = GetComponent<Collider2D>();
+        colisorProprio.isTrigger = true;
 
         direcaoAtual = direcaoInicial.sqrMagnitude > 0.01f ? direcaoInicial.normalized : Vector2.right;
         direcaoVisao = direcaoAtual;
@@ -64,7 +68,21 @@ public class Inimigo : MonoBehaviour
             alvo = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
-        bool podeVerAlvo = alvo != null && EstaDentroDoCampoDeVisao(alvo) && !AlvoEstaCamuflado(alvo.gameObject);
+        if (alvo != null && EstaTocandoAlvo(alvo.gameObject) && !AlvoEstaCamuflado(alvo.gameObject))
+        {
+            GerenciadorGameOver.GameOver();
+            return;
+        }
+
+        bool podeVerAlvo = DevePerseguirAlvo();
+
+        if (!podeVerAlvo && perseguindoAlvo)
+        {
+            EscolherNovoDestinoAleatorio();
+        }
+
+        perseguindoAlvo = podeVerAlvo;
+
         Vector2 destino = podeVerAlvo ? (Vector2)alvo.position : ObterDestinoAleatorio();
         float velocidade = podeVerAlvo ? velocidadePerseguicao : velocidadePatrulha;
         Vector2 novaDirecao = destino - corpo.position;
@@ -72,7 +90,7 @@ public class Inimigo : MonoBehaviour
         if (novaDirecao.sqrMagnitude > 0.01f)
         {
             direcaoAtual = novaDirecao.normalized;
-            direcaoVisao = podeVerAlvo ? direcaoAtual : Vector2.Lerp(direcaoVisao, direcaoAtual, 0.35f).normalized;
+            AtualizarDirecaoVisao(direcaoAtual);
             corpo.MovePosition(Vector2.MoveTowards(corpo.position, destino, velocidade * Time.fixedDeltaTime));
             AtualizarAnimacao(direcaoAtual, true);
         }
@@ -80,6 +98,16 @@ public class Inimigo : MonoBehaviour
         {
             AtualizarAnimacao(direcaoAtual, false);
         }
+    }
+
+    private bool DevePerseguirAlvo()
+    {
+        if (alvo == null || !EstaDentroDoCampoDeVisao(alvo))
+        {
+            return false;
+        }
+
+        return !AlvoEstaCamuflado(alvo.gameObject);
     }
 
     private void LateUpdate()
@@ -124,11 +152,48 @@ public class Inimigo : MonoBehaviour
         return Vector2.Angle(direcaoVisao, ateAlvo) <= anguloVisao * 0.5f;
     }
 
+    private void AtualizarDirecaoVisao(Vector2 direcaoDesejada)
+    {
+        if (direcaoDesejada.sqrMagnitude <= 0.01f)
+        {
+            return;
+        }
+
+        if (direcaoVisao.sqrMagnitude <= 0.01f)
+        {
+            direcaoVisao = direcaoDesejada.normalized;
+            return;
+        }
+
+        float passoRadianos = velocidadeGiroVisao * Mathf.Deg2Rad * Time.fixedDeltaTime;
+        Vector3 direcaoGirando = Vector3.RotateTowards(direcaoVisao, direcaoDesejada.normalized, passoRadianos, 0f);
+        direcaoVisao = ((Vector2)direcaoGirando).normalized;
+    }
+
     private bool AlvoEstaCamuflado(GameObject alvoParaChecar)
     {
         Camuflar camuflar = alvoParaChecar.GetComponent<Camuflar>();
         MudarCor mudarCor = alvoParaChecar.GetComponent<MudarCor>();
-        return camuflar != null && mudarCor != null && camuflar.EstaNoTapete && mudarCor.EstaComHueDoTapete(toleranciaHue);
+        return camuflar != null && mudarCor != null && camuflar.EstaCamuflado && mudarCor.EstaComHueDoTapete(toleranciaHue);
+    }
+
+    private bool EstaTocandoAlvo(GameObject alvoParaChecar)
+    {
+        if (colisorProprio == null)
+        {
+            return false;
+        }
+
+        Collider2D colisorAlvo = alvoParaChecar.GetComponent<Collider2D>();
+
+        if (colisorAlvo == null)
+        {
+            return false;
+        }
+
+        ColliderDistance2D distancia = colisorProprio.Distance(colisorAlvo);
+        float distanciaPelosCentros = Vector2.Distance(transform.position, alvoParaChecar.transform.position);
+        return distancia.isOverlapped || distancia.distance <= 0.02f || distanciaPelosCentros <= raioCaptura;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -192,6 +257,10 @@ public class Inimigo : MonoBehaviour
             campo.transform.SetParent(transform, false);
             filho = campo.transform;
         }
+
+        filho.localPosition = Vector3.zero;
+        filho.localRotation = Quaternion.identity;
+        filho.localScale = Vector3.one;
 
         filtroVisao = filho.GetComponent<MeshFilter>();
         renderVisao = filho.GetComponent<MeshRenderer>();

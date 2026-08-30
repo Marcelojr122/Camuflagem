@@ -44,7 +44,8 @@ public static class ConfigurarProjetoCamuflagem
             "Assets/Prefabs/Inimigos/Cobra.prefab",
             1.15f,
             2.35f,
-            18f,
+            4f,
+            28f,
             8f,
             materialVisao);
 
@@ -54,7 +55,8 @@ public static class ConfigurarProjetoCamuflagem
             "Assets/Prefabs/Inimigos/Cientista.prefab",
             2.05f,
             3.4f,
-            14f,
+            6f,
+            22f,
             7f,
             materialVisao);
 
@@ -89,7 +91,8 @@ public static class ConfigurarProjetoCamuflagem
         foreach ((string sufixo, int direcao, string nome) in Direcoes)
         {
             Sprite idle = CarregarSprite($"{prefixo}_{sufixo}_1");
-            List<Sprite> framesAndando = CarregarFrames(prefixo, sufixo).Where(sprite => ObterNumeroFinal(sprite.name) != 1).ToList();
+            List<Sprite> todosFrames = CarregarFrames(prefixo, sufixo);
+            List<Sprite> framesAndando = todosFrames.Where(sprite => ObterNumeroFinal(sprite.name) != 1).ToList();
 
             if (idle == null)
             {
@@ -100,6 +103,10 @@ public static class ConfigurarProjetoCamuflagem
             if (framesAndando.Count == 0)
             {
                 framesAndando.Add(idle);
+            }
+            else if (framesAndando.Count == 1 && todosFrames.Count > 1)
+            {
+                framesAndando.Insert(0, idle);
             }
 
             clips[direcao] = CriarClip($"{pastaDestino}/{nomeBase}_Idle_{nome}.anim", new[] { idle }, 1f, false);
@@ -390,11 +397,12 @@ public static class ConfigurarProjetoCamuflagem
         string caminhoPrefab,
         float velocidadePatrulha,
         float velocidadePerseguicao,
+        float sampleRateAnimacao,
         float distanciaVisao,
         float distanciaPatrulha,
         Material materialVisao)
     {
-        Dictionary<int, AnimationClip> clips = CriarClipsInimigo(prefixoSprites, PastaAnimInimigos, nome, 6f);
+        Dictionary<int, AnimationClip> clips = CriarClipsInimigo(prefixoSprites, PastaAnimInimigos, nome, sampleRateAnimacao);
         AnimatorController controller = ConfigurarController($"{PastaAnimInimigos}/{nome}.controller", clips, false);
 
         GameObject prefabExistente = AssetDatabase.LoadAssetAtPath<GameObject>(caminhoPrefab);
@@ -434,8 +442,10 @@ public static class ConfigurarProjetoCamuflagem
         inimigo.distanciaVisao = distanciaVisao;
         inimigo.distanciaPatrulha = distanciaPatrulha;
         inimigo.intervaloTrocaDestino = 2.4f;
+        inimigo.raioCaptura = 0.65f;
         inimigo.direcaoInicial = Vector2.right;
-        inimigo.anguloVisao = 105f;
+        inimigo.anguloVisao = 28f;
+        inimigo.velocidadeGiroVisao = 140f;
         inimigo.toleranciaHue = 2f;
 
         Transform campo = objeto.transform.Find("Campo de Visao");
