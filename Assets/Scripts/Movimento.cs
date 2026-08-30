@@ -18,6 +18,16 @@ public class Movimento : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         corpo = GetComponent<Rigidbody2D>();
+
+        if (corpo != null)
+        {
+            corpo.gravityScale = 0f;
+            corpo.freezeRotation = true;
+            corpo.rotation = 0f;
+            corpo.angularVelocity = 0f;
+        }
+
+        transform.rotation = Quaternion.identity;
     }
 
     private void FixedUpdate()
@@ -27,7 +37,9 @@ public class Movimento : MonoBehaviour
             return;
         }
 
-        corpo.MovePosition(corpo.position + movimento * movimentoSpeed * Time.fixedDeltaTime);
+        corpo.rotation = 0f;
+        corpo.angularVelocity = 0f;
+        corpo.MovePosition(corpo.position + movimento.normalized * movimentoSpeed * Time.fixedDeltaTime);
     }
 
     public void OnMove(InputAction.CallbackContext context)

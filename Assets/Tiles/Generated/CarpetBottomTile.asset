@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Parede_9_0
+  m_Name: CarpetBottomTile
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.Tilemaps.Tile
-  m_Sprite: {fileID: 2709467325649189560, guid: fdc5c67b2823cef4c9df87fab0a1d719, type: 3}
+  m_Sprite: {fileID: -146611117910369501, guid: 63f1b89a0f446004a937f5024a500e26, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
-    e00: 1
+    e00: 3.125
     e01: 0
     e02: 0
     e03: 0
     e10: 0
-    e11: 1
+    e11: 3.125
     e12: 0
     e13: 0
     e20: 0
@@ -33,4 +33,4 @@ MonoBehaviour:
     e33: 1
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 1
-  m_ColliderType: 1
+  m_ColliderType: 0

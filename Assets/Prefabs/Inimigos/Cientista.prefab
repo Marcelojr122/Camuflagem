@@ -121,7 +121,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1955754836976585685}
@@ -243,7 +243,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -299,7 +299,10 @@ MonoBehaviour:
   intervaloTrocaDestino: 2.4
   raioCaptura: 0.65
   direcaoInicial: {x: 1, y: 0}
-  distanciaVisao: 22
-  anguloVisao: 28
+  distanciaVisao: 5
+  anguloVisao: 70
   velocidadeGiroVisao: 140
   toleranciaHue: 2
+  segmentosVisao: 14
+  mapaProcedural: {fileID: 0}
+  manterVisaoDurantePerseguicao: 1

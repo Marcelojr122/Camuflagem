@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -15,15 +16,20 @@ public class Inimigo : MonoBehaviour
     public float intervaloTrocaDestino = 2.5f;
     public float raioCaptura = 0.65f;
     public Vector2 direcaoInicial = Vector2.right;
+    public float intervaloRecalculoCaminho = 0.35f;
 
     [Header("Visao")]
-    public float distanciaVisao = 5f;
-    [Range(10f, 160f)] public float anguloVisao = 28f;
+    public float distanciaVisao = 6f;
+    [Range(10f, 160f)] public float anguloVisao = 70f;
     public float velocidadeGiroVisao = 140f;
     public float toleranciaHue = 2f;
+    [Range(3, 32)] public int segmentosVisao = 14;
+    public ProceduralMap mapaProcedural;
+    public bool manterVisaoDurantePerseguicao = true;
 
     private Rigidbody2D corpo;
     private Collider2D colisorProprio;
+    private Collider2D colisorAlvo;
     private Animator animator;
     private Transform alvo;
     private Vector2 centroMovimento;
@@ -35,6 +41,14 @@ public class Inimigo : MonoBehaviour
     private Mesh malhaVisao;
     private MeshFilter filtroVisao;
     private MeshRenderer renderVisao;
+    private Material materialVisao;
+    private readonly List<Vector2> caminhoAtual = new List<Vector2>();
+    private int indiceCaminho;
+    private Vector2 destinoCaminho;
+    private bool caminhoEraPerseguicao;
+    private float tempoRecalculoCaminho;
+    private Vector2 ultimaPosicao;
+    private float tempoTravado;
 
     private void Awake()
     {
@@ -42,13 +56,16 @@ public class Inimigo : MonoBehaviour
         animator = GetComponent<Animator>();
         corpo.gravityScale = 0f;
         corpo.freezeRotation = true;
+        corpo.rotation = 0f;
+        corpo.angularVelocity = 0f;
 
         colisorProprio = GetComponent<Collider2D>();
-        colisorProprio.isTrigger = true;
+        colisorProprio.isTrigger = false;
 
         direcaoAtual = direcaoInicial.sqrMagnitude > 0.01f ? direcaoInicial.normalized : Vector2.right;
         direcaoVisao = direcaoAtual;
         centroMovimento = transform.position;
+        ultimaPosicao = transform.position;
         alvo = GameObject.FindGameObjectWithTag("Player")?.transform;
         EscolherNovoDestinoAleatorio();
 
@@ -68,6 +85,8 @@ public class Inimigo : MonoBehaviour
             alvo = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
+        AtualizarColisaoComAlvo();
+
         if (alvo != null && EstaTocandoAlvo(alvo.gameObject) && !AlvoEstaCamuflado(alvo.gameObject))
         {
             GerenciadorGameOver.GameOver();
@@ -78,31 +97,65 @@ public class Inimigo : MonoBehaviour
 
         if (!podeVerAlvo && perseguindoAlvo)
         {
-            EscolherNovoDestinoAleatorio();
+            EscolherDestinoAposPerderAlvo();
         }
 
         perseguindoAlvo = podeVerAlvo;
 
-        Vector2 destino = podeVerAlvo ? (Vector2)alvo.position : ObterDestinoAleatorio();
+        Vector2 destinoFinal = podeVerAlvo ? (Vector2)alvo.position : ObterDestinoAleatorio();
+        Vector2 destino = ObterProximoDestinoPeloCaminho(destinoFinal, podeVerAlvo);
         float velocidade = podeVerAlvo ? velocidadePerseguicao : velocidadePatrulha;
         Vector2 novaDirecao = destino - corpo.position;
 
         if (novaDirecao.sqrMagnitude > 0.01f)
         {
             direcaoAtual = novaDirecao.normalized;
-            AtualizarDirecaoVisao(direcaoAtual);
+            direcaoVisao = direcaoAtual;
+
+            corpo.rotation = 0f;
+            corpo.angularVelocity = 0f;
             corpo.MovePosition(Vector2.MoveTowards(corpo.position, destino, velocidade * Time.fixedDeltaTime));
             AtualizarAnimacao(direcaoAtual, true);
+            VerificarTravamento(destino, podeVerAlvo);
         }
         else
         {
             AtualizarAnimacao(direcaoAtual, false);
+            tempoTravado = 0f;
+            ultimaPosicao = corpo.position;
         }
+    }
+
+    public void ConfigurarPatrulhaProcedural(ProceduralMap mapa, Vector2 novaDirecaoInicial)
+    {
+        mapaProcedural = mapa;
+        direcaoInicial = novaDirecaoInicial.sqrMagnitude > 0.01f ? novaDirecaoInicial.normalized : Vector2.right;
+        direcaoAtual = direcaoInicial;
+        direcaoVisao = direcaoInicial;
+        centroMovimento = transform.position;
+
+        if (corpo != null)
+        {
+            LimparCaminho();
+            EscolherNovoDestinoAleatorio();
+        }
+
+        AtualizarAnimacao(direcaoAtual, true);
     }
 
     private bool DevePerseguirAlvo()
     {
         if (alvo == null || !EstaDentroDoCampoDeVisao(alvo))
+        {
+            return false;
+        }
+
+        if (mapaProcedural == null)
+        {
+            mapaProcedural = FindFirstObjectByType<ProceduralMap>();
+        }
+
+        if (mapaProcedural != null && mapaProcedural.TemParedeEntreMundo(corpo.position, alvo.position))
         {
             return false;
         }
@@ -129,6 +182,19 @@ public class Inimigo : MonoBehaviour
 
     private void EscolherNovoDestinoAleatorio()
     {
+        if (mapaProcedural == null)
+        {
+            mapaProcedural = FindFirstObjectByType<ProceduralMap>();
+        }
+
+        if (mapaProcedural != null && mapaProcedural.TemMapaGerado)
+        {
+            destinoAleatorio = mapaProcedural.ObterPosicaoMundoAleatoriaDeChao(corpo.position, distanciaPatrulha);
+            tempoNovoDestino = UnityEngine.Random.Range(intervaloTrocaDestino * 0.6f, intervaloTrocaDestino * 1.4f);
+            LimparCaminho();
+            return;
+        }
+
         Vector2 deslocamento = UnityEngine.Random.insideUnitCircle * Mathf.Max(0.5f, distanciaPatrulha);
 
         if (deslocamento.sqrMagnitude < 0.25f)
@@ -138,18 +204,174 @@ public class Inimigo : MonoBehaviour
 
         destinoAleatorio = centroMovimento + deslocamento;
         tempoNovoDestino = UnityEngine.Random.Range(intervaloTrocaDestino * 0.6f, intervaloTrocaDestino * 1.4f);
+        LimparCaminho();
+    }
+
+    private void EscolherDestinoAposPerderAlvo()
+    {
+        if (alvo == null)
+        {
+            EscolherNovoDestinoAleatorio();
+            return;
+        }
+
+        if (mapaProcedural == null)
+        {
+            mapaProcedural = FindFirstObjectByType<ProceduralMap>();
+        }
+
+        if (mapaProcedural != null && mapaProcedural.TemMapaGerado)
+        {
+            destinoAleatorio = mapaProcedural.ObterPosicaoMundoAleatoriaLongeDe(corpo.position, alvo.position, distanciaPatrulha);
+            AtualizarDirecaoVisao((destinoAleatorio - corpo.position).normalized);
+            tempoNovoDestino = UnityEngine.Random.Range(intervaloTrocaDestino * 0.6f, intervaloTrocaDestino * 1.4f);
+            LimparCaminho();
+            return;
+        }
+
+        Vector2 direcaoParaLonge = (corpo.position - (Vector2)alvo.position).normalized;
+
+        if (direcaoParaLonge.sqrMagnitude <= 0.01f)
+        {
+            direcaoParaLonge = -direcaoAtual;
+        }
+
+        destinoAleatorio = corpo.position + direcaoParaLonge * Mathf.Max(1.5f, distanciaPatrulha * 0.6f);
+        AtualizarDirecaoVisao((destinoAleatorio - corpo.position).normalized);
+        tempoNovoDestino = UnityEngine.Random.Range(intervaloTrocaDestino * 0.6f, intervaloTrocaDestino * 1.4f);
+        LimparCaminho();
+    }
+
+    private Vector2 ObterProximoDestinoPeloCaminho(Vector2 destinoFinal, bool perseguicao)
+    {
+        if (mapaProcedural == null)
+        {
+            mapaProcedural = FindFirstObjectByType<ProceduralMap>();
+        }
+
+        if (mapaProcedural == null || !mapaProcedural.TemMapaGerado)
+        {
+            return destinoFinal;
+        }
+
+        bool precisaRecalcular =
+            caminhoAtual.Count == 0 ||
+            indiceCaminho >= caminhoAtual.Count ||
+            caminhoEraPerseguicao != perseguicao ||
+            tempoRecalculoCaminho <= 0f ||
+            Vector2.Distance(destinoCaminho, destinoFinal) > 0.75f;
+
+        tempoRecalculoCaminho -= Time.fixedDeltaTime;
+
+        if (precisaRecalcular)
+        {
+            RecalcularCaminho(destinoFinal, perseguicao);
+        }
+
+        if (caminhoAtual.Count == 0 || indiceCaminho >= caminhoAtual.Count)
+        {
+            return corpo.position;
+        }
+
+        while (indiceCaminho < caminhoAtual.Count - 1 && Vector2.Distance(corpo.position, caminhoAtual[indiceCaminho]) < 0.08f)
+        {
+            indiceCaminho++;
+        }
+
+        return caminhoAtual[indiceCaminho];
+    }
+
+    private void RecalcularCaminho(Vector2 destinoFinal, bool perseguicao)
+    {
+        caminhoAtual.Clear();
+        indiceCaminho = 0;
+        destinoCaminho = destinoFinal;
+        caminhoEraPerseguicao = perseguicao;
+        tempoRecalculoCaminho = Mathf.Max(0.1f, perseguicao ? intervaloRecalculoCaminho : intervaloRecalculoCaminho * 2f);
+
+        if (!mapaProcedural.TentarObterCaminhoMundo(corpo.position, destinoFinal, caminhoAtual) && !perseguicao)
+        {
+            EscolherNovoDestinoAleatorio();
+            mapaProcedural.TentarObterCaminhoMundo(corpo.position, destinoAleatorio, caminhoAtual);
+        }
+    }
+
+    private void LimparCaminho()
+    {
+        caminhoAtual.Clear();
+        indiceCaminho = 0;
+        tempoRecalculoCaminho = 0f;
+    }
+
+    private void VerificarTravamento(Vector2 destino, bool perseguicao)
+    {
+        if (Vector2.Distance(corpo.position, destino) < 0.12f)
+        {
+            tempoTravado = 0f;
+            ultimaPosicao = corpo.position;
+            return;
+        }
+
+        if (Vector2.Distance(corpo.position, ultimaPosicao) < 0.01f)
+        {
+            tempoTravado += Time.fixedDeltaTime;
+        }
+        else
+        {
+            tempoTravado = 0f;
+        }
+
+        ultimaPosicao = corpo.position;
+
+        if (tempoTravado < 0.6f)
+        {
+            return;
+        }
+
+        tempoTravado = 0f;
+        LimparCaminho();
+
+        if (!perseguicao)
+        {
+            EscolherNovoDestinoAleatorio();
+        }
     }
 
     private bool EstaDentroDoCampoDeVisao(Transform alvoParaVer)
     {
         Vector2 ateAlvo = (Vector2)alvoParaVer.position - corpo.position;
 
+        if (direcaoVisao.sqrMagnitude <= 0.01f)
+        {
+            return false;
+        }
+
         if (ateAlvo.sqrMagnitude > distanciaVisao * distanciaVisao)
         {
             return false;
         }
 
-        return Vector2.Angle(direcaoVisao, ateAlvo) <= anguloVisao * 0.5f;
+        Vector2 pontaEsquerda = Rotacionar(direcaoVisao, -anguloVisao * 0.5f) * distanciaVisao;
+        Vector2 pontaDireita = Rotacionar(direcaoVisao, anguloVisao * 0.5f) * distanciaVisao;
+
+        return PontoDentroDoTriangulo(ateAlvo, Vector2.zero, pontaEsquerda, pontaDireita);
+    }
+
+    private static bool PontoDentroDoTriangulo(Vector2 ponto, Vector2 a, Vector2 b, Vector2 c)
+    {
+        float lado1 = SinalTriangulo(ponto, a, b);
+        float lado2 = SinalTriangulo(ponto, b, c);
+        float lado3 = SinalTriangulo(ponto, c, a);
+
+        bool temNegativo = lado1 < 0f || lado2 < 0f || lado3 < 0f;
+        bool temPositivo = lado1 > 0f || lado2 > 0f || lado3 > 0f;
+
+        return !(temNegativo && temPositivo);
+    }
+
+    private static float SinalTriangulo(Vector2 p1, Vector2 p2, Vector2 p3)
+    {
+        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
     }
 
     private void AtualizarDirecaoVisao(Vector2 direcaoDesejada)
@@ -175,6 +397,26 @@ public class Inimigo : MonoBehaviour
         Camuflar camuflar = alvoParaChecar.GetComponent<Camuflar>();
         MudarCor mudarCor = alvoParaChecar.GetComponent<MudarCor>();
         return camuflar != null && mudarCor != null && camuflar.EstaCamuflado && mudarCor.EstaComHueDoTapete(toleranciaHue);
+    }
+
+    private void AtualizarColisaoComAlvo()
+    {
+        if (alvo == null || colisorProprio == null)
+        {
+            return;
+        }
+
+        if (colisorAlvo == null)
+        {
+            colisorAlvo = alvo.GetComponent<Collider2D>();
+        }
+
+        if (colisorAlvo == null)
+        {
+            return;
+        }
+
+        Physics2D.IgnoreCollision(colisorProprio, colisorAlvo, AlvoEstaCamuflado(alvo.gameObject));
     }
 
     private bool EstaTocandoAlvo(GameObject alvoParaChecar)
@@ -284,6 +526,8 @@ public class Inimigo : MonoBehaviour
             material.color = new Color(1f, 0.85f, 0.1f, 0.28f);
             renderVisao.material = material;
         }
+
+        materialVisao = renderVisao.material;
     }
 
     private void AtualizarCampoDeVisao()
@@ -293,18 +537,73 @@ public class Inimigo : MonoBehaviour
             return;
         }
 
-        Vector3 pontaEsquerda = Rotacionar(direcaoVisao, -anguloVisao * 0.5f) * distanciaVisao;
-        Vector3 pontaDireita = Rotacionar(direcaoVisao, anguloVisao * 0.5f) * distanciaVisao;
+        int segmentos = Mathf.Max(3, segmentosVisao);
+        Vector3[] vertices = new Vector3[segmentos + 2];
+        int[] triangulos = new int[segmentos * 3];
+        Vector2 origem = corpo != null ? corpo.position : (Vector2)transform.position;
+        bool algumRaioBloqueado = false;
+
+        vertices[0] = Vector3.zero;
+
+        if (mapaProcedural == null)
+        {
+            mapaProcedural = FindFirstObjectByType<ProceduralMap>();
+        }
+
+        for (int i = 0; i <= segmentos; i++)
+        {
+            float t = i / (float)segmentos;
+            float angulo = Mathf.Lerp(-anguloVisao * 0.5f, anguloVisao * 0.5f, t);
+            Vector2 direcaoRaio = Rotacionar(direcaoVisao, angulo).normalized;
+            Vector2 destinoRaio = origem + direcaoRaio * distanciaVisao;
+
+            if (mapaProcedural != null)
+            {
+                destinoRaio = mapaProcedural.ObterPontoAntesDaParedeMundo(origem, destinoRaio, out bool bateuNaParede);
+                algumRaioBloqueado |= bateuNaParede;
+            }
+
+            vertices[i + 1] = ObterVerticeLocalDoCampo(destinoRaio - origem);
+        }
+
+        for (int i = 0; i < segmentos; i++)
+        {
+            int indice = i * 3;
+            triangulos[indice] = 0;
+            triangulos[indice + 1] = i + 1;
+            triangulos[indice + 2] = i + 2;
+        }
 
         malhaVisao.Clear();
-        malhaVisao.vertices = new[]
-        {
-            Vector3.zero,
-            pontaEsquerda,
-            pontaDireita
-        };
-        malhaVisao.triangles = new[] { 0, 1, 2 };
+        malhaVisao.vertices = vertices;
+        malhaVisao.triangles = triangulos;
         malhaVisao.RecalculateBounds();
+
+        AtualizarCorVisao(algumRaioBloqueado);
+    }
+
+    private void AtualizarCorVisao(bool bloqueadaPorParede)
+    {
+        if (materialVisao == null)
+        {
+            return;
+        }
+
+        materialVisao.color = bloqueadaPorParede
+            ? new Color(1f, 0.35f, 0.1f, 0.32f)
+            : new Color(1f, 0.85f, 0.1f, 0.28f);
+    }
+
+    private Vector3 ObterVerticeLocalDoCampo(Vector2 deslocamentoMundo)
+    {
+        if (filtroVisao == null)
+        {
+            return deslocamentoMundo;
+        }
+
+        Vector3 local = filtroVisao.transform.InverseTransformVector(deslocamentoMundo);
+        local.z = 0f;
+        return local;
     }
 
     private static Vector2 Rotacionar(Vector2 vetor, float graus)

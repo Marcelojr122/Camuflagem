@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public static class ConfigurarProjetoCamuflagem
 {
@@ -602,6 +603,7 @@ public static class ConfigurarProjetoCamuflagem
         GameObject instancia = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
         instancia.name = nome;
         instancia.transform.position = posicao;
+        instancia.transform.localScale = new Vector3(0.1f, 0.1f, 1f);
 
         Inimigo inimigo = instancia.GetComponent<Inimigo>();
 
@@ -609,5 +611,164 @@ public static class ConfigurarProjetoCamuflagem
         {
             inimigo.direcaoInicial = direcaoInicial;
         }
+    }
+
+    public static void ValidarIntegracaoProcedural()
+    {
+        try
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            GameObject cameraObjeto = new GameObject("Main Camera");
+            cameraObjeto.tag = "MainCamera";
+            Camera camera = cameraObjeto.AddComponent<Camera>();
+            camera.orthographic = true;
+            camera.transform.position = new Vector3(0f, 0f, -10f);
+
+            GameObject gridObjeto = new GameObject("Grid");
+            gridObjeto.AddComponent<Grid>();
+
+            GameObject tilemapObjeto = new GameObject("Tilemap");
+            tilemapObjeto.transform.SetParent(gridObjeto.transform, false);
+            Tilemap tilemap = tilemapObjeto.AddComponent<Tilemap>();
+            tilemapObjeto.AddComponent<TilemapRenderer>();
+
+            GameObject mapaObjeto = new GameObject("ProceduralMap");
+            ProceduralMap mapa = mapaObjeto.AddComponent<ProceduralMap>();
+            mapa.mapWidth = 40;
+            mapa.mapHeight = 30;
+            mapa.roomCount = 8;
+            mapa.randomSeed = false;
+            mapa.seed = 12345;
+            mapa.tilemap = tilemap;
+            mapa.floorTile = CarregarAsset<TileBase>("4d0e0c38c7aad89488e3deeea4a69a8b");
+            mapa.wallTopTile = CarregarAsset<TileBase>("8745aad07f1b21e4c84d596c4dc824e8");
+            mapa.wallLeftTile = CarregarAsset<TileBase>("e8b60b4f87305824e96c337653be55ab");
+            mapa.wallRightTile = CarregarAsset<TileBase>("732cc574cfeb53445aa0cd540a046c9a");
+            mapa.wallBottomTile = CarregarAsset<TileBase>("82b17fc6fa87f394591a6d1115663412");
+            mapa.wallTile = CarregarAsset<TileBase>("5b32a97254d088c4483a2d316b222305");
+            mapa.wallCornerTopLeftTile = CarregarAsset<TileBase>("9818d8bf7efce2643924c62bd30710bd");
+            mapa.wallCornerTopRightTile = CarregarAsset<TileBase>("2384a050e39ebc245a868d51adea4dd9");
+            mapa.wallCornerBottomLeftTile = CarregarAsset<TileBase>("b51a1748557e506459197ace75d23a2f");
+            mapa.wallCornerBottomRightTile = CarregarAsset<TileBase>("44364633dc4f48544b4749462f83f1b1");
+            mapa.carpetTile = CarregarAsset<TileBase>("20d9cb10a1f448d4bbd799d16f96d963");
+            mapa.carpetTopTile = CarregarAsset<TileBase>("3d10a0c3ecaf45c0b9a41a37f5d4707b");
+            mapa.carpetBottomTile = CarregarAsset<TileBase>("fdc4e8f4a4d94234825b4c8559f89c3d");
+            mapa.carpetLeftTile = CarregarAsset<TileBase>("ccd72382202f405b9d23b9074e612631");
+            mapa.carpetRightTile = CarregarAsset<TileBase>("a2236382f46943f9bf382f73fd4f209d");
+            mapa.carpetTopLeftTile = CarregarAsset<TileBase>("015d74ba39044ac4bed796078924d046");
+            mapa.carpetTopRightTile = CarregarAsset<TileBase>("c9784c43fe714cce80cc1199fed1d89c");
+            mapa.carpetBottomLeftTile = CarregarAsset<TileBase>("0fd5a2806c8a4ef1b1bcf25076c70401");
+            mapa.carpetBottomRightTile = CarregarAsset<TileBase>("7fbb79a1420b4bdfb749b826a803a19c");
+            mapa.usarFallbackVisualParaChaoEParede = false;
+            mapa.jogadorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CaminhoPrefabJogador);
+            mapa.cobraPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Inimigos/Cobra.prefab");
+            mapa.cientistaPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Inimigos/Cientista.prefab");
+            mapa.cameraPrincipal = camera;
+            mapa.caixaSprite = CarregarAsset<Sprite>("72c4ad8987f30ad489746c9e346c528f");
+            mapa.botaoSprite = CarregarAsset<Sprite>("aea5b74f94051924793a1e8908bfb376");
+            mapa.botaoPressionadoSprite = CarregarAsset<Sprite>("9fbe5c8e6fb6a064d9892258566e7bbc");
+            mapa.carpetMaterials = new[]
+            {
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial.mat"),
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 1.mat"),
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 2.mat"),
+                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 3.mat")
+            };
+
+            mapa.GenerateMap();
+            ValidarCondicao(mapa.TemMapaGerado, "mapa procedural nao gerou chao valido");
+            ValidarCondicao(GameObject.FindGameObjectWithTag("Player") != null, "jogador nao foi criado no mapa procedural");
+            ValidarCondicao(UnityEngine.Object.FindObjectsByType<Inimigo>(FindObjectsSortMode.None).Length >= 2, "inimigos nao foram criados no mapa procedural");
+            ValidarCondicao(GameObject.FindGameObjectsWithTag("Tapete").Length > 0, "tapetes procedurais nao criaram triggers com tag Tapete");
+            ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<SaidaPuzzle>() != null, "saida do puzzle nao foi criada no mapa procedural");
+            ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<BotaoPuzzle>() != null, "botao do puzzle nao foi criado no mapa procedural");
+            ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<CaixaArrastavel>() != null, "caixa arrastavel nao foi criada no mapa procedural");
+            ValidarCondicao(tilemap.GetComponent<TilemapCollider2D>() != null, "tilemap procedural nao recebeu TilemapCollider2D");
+            ValidarCondicao(camera.GetComponent<CameraSeguirJogador>() != null, "camera nao recebeu CameraSeguirJogador");
+            ValidarCampoDeVisaoEstrito();
+
+            Debug.Log("VALIDACAO_PROCEDURAL_OK");
+
+            if (Application.isBatchMode)
+            {
+                EditorApplication.Exit(0);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+
+            if (Application.isBatchMode)
+            {
+                EditorApplication.Exit(1);
+            }
+        }
+    }
+
+    private static T CarregarAsset<T>(string guid) where T : UnityEngine.Object
+    {
+        string caminho = AssetDatabase.GUIDToAssetPath(guid);
+        T asset = AssetDatabase.LoadAssetAtPath<T>(caminho);
+
+        if (asset != null)
+        {
+            return asset;
+        }
+
+        return AssetDatabase
+            .LoadAllAssetsAtPath(caminho)
+            .OfType<T>()
+            .FirstOrDefault();
+    }
+
+    private static void ValidarCondicao(bool condicao, string mensagem)
+    {
+        if (!condicao)
+        {
+            throw new InvalidOperationException(mensagem);
+        }
+    }
+
+    private static void ValidarCampoDeVisaoEstrito()
+    {
+        GameObject alvoObjeto = new GameObject("Alvo Teste");
+        alvoObjeto.tag = "Player";
+        alvoObjeto.AddComponent<BoxCollider2D>();
+
+        GameObject inimigoObjeto = new GameObject("Inimigo Teste");
+        Rigidbody2D corpo = inimigoObjeto.AddComponent<Rigidbody2D>();
+        inimigoObjeto.AddComponent<BoxCollider2D>();
+        inimigoObjeto.AddComponent<SpriteRenderer>();
+        Inimigo inimigo = inimigoObjeto.AddComponent<Inimigo>();
+
+        corpo.position = Vector2.zero;
+        DefinirCampoPrivado(inimigo, "corpo", corpo);
+        DefinirCampoPrivado(inimigo, "alvo", alvoObjeto.transform);
+        DefinirCampoPrivado(inimigo, "direcaoVisao", Vector2.right);
+
+        System.Reflection.MethodInfo devePerseguir = typeof(Inimigo).GetMethod(
+            "DevePerseguirAlvo",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic
+        );
+
+        alvoObjeto.transform.position = new Vector3(4f, 0f, 0f);
+        bool dentro = (bool)devePerseguir.Invoke(inimigo, null);
+
+        alvoObjeto.transform.position = new Vector3(0f, 4f, 0f);
+        bool fora = (bool)devePerseguir.Invoke(inimigo, null);
+
+        ValidarCondicao(dentro, "inimigo nao detecta jogador dentro do triangulo");
+        ValidarCondicao(!fora, "inimigo detecta jogador fora do triangulo");
+    }
+
+    private static void DefinirCampoPrivado(object alvo, string nome, object valor)
+    {
+        System.Reflection.FieldInfo campo = alvo.GetType().GetField(
+            nome,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic
+        );
+
+        campo.SetValue(alvo, valor);
     }
 }

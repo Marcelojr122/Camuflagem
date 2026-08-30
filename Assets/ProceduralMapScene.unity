@@ -332,11 +332,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralMap
   mapWidth: 40
   mapHeight: 30
-  roomCount: 10
-  minRoomWidth: 8
-  maxRoomWidth: 16
-  minRoomHeight: 6
-  maxRoomHeight: 12
+  roomCount: 8
+  minRoomWidth: 5
+  maxRoomWidth: 10
+  minRoomHeight: 4
+  maxRoomHeight: 8
   roomPadding: 2
   minCarpetsPerRoom: 1
   maxCarpetsPerRoom: 2
@@ -348,10 +348,49 @@ MonoBehaviour:
   maxCarpetsPerCorridor: 2
   seed: 12345
   randomSeed: 1
+  imprimirMapaNoConsole: 0
   tilemap: {fileID: 622295506}
-  floorTile: {fileID: 11400000, guid: bbca11771c13b754ea32b580f0a6966e, type: 2}
-  wallTile: {fileID: 11400000, guid: 0597a61117710734ea736824436619c5, type: 2}
-  carpetTile: {fileID: 11400000, guid: 325c6ad193efeca4ba3cae02f0dca229, type: 2}
+  floorTile: {fileID: 11400000, guid: 4d0e0c38c7aad89488e3deeea4a69a8b, type: 2}
+  wallTopTile: {fileID: 11400000, guid: 8745aad07f1b21e4c84d596c4dc824e8, type: 2}
+  wallLeftTile: {fileID: 11400000, guid: e8b60b4f87305824e96c337653be55ab, type: 2}
+  wallRightTile: {fileID: 11400000, guid: 732cc574cfeb53445aa0cd540a046c9a, type: 2}
+  wallBottomTile: {fileID: 11400000, guid: 82b17fc6fa87f394591a6d1115663412, type: 2}
+  wallTile: {fileID: 11400000, guid: 5b32a97254d088c4483a2d316b222305, type: 2}
+  wallCornerTopLeftTile: {fileID: 11400000, guid: 9818d8bf7efce2643924c62bd30710bd, type: 2}
+  wallCornerTopRightTile: {fileID: 11400000, guid: 2384a050e39ebc245a868d51adea4dd9, type: 2}
+  wallCornerBottomLeftTile: {fileID: 11400000, guid: b51a1748557e506459197ace75d23a2f, type: 2}
+  wallCornerBottomRightTile: {fileID: 11400000, guid: 44364633dc4f48544b4749462f83f1b1, type: 2}
+  carpetTile: {fileID: 11400000, guid: 20d9cb10a1f448d4bbd799d16f96d963, type: 2}
+  carpetTopTile: {fileID: 11400000, guid: 3d10a0c3ecaf45c0b9a41a37f5d4707b, type: 2}
+  carpetBottomTile: {fileID: 11400000, guid: fdc4e8f4a4d94234825b4c8559f89c3d, type: 2}
+  carpetLeftTile: {fileID: 11400000, guid: ccd72382202f405b9d23b9074e612631, type: 2}
+  carpetRightTile: {fileID: 11400000, guid: a2236382f46943f9bf382f73fd4f209d, type: 2}
+  carpetTopLeftTile: {fileID: 11400000, guid: 015d74ba39044ac4bed796078924d046, type: 2}
+  carpetTopRightTile: {fileID: 11400000, guid: c9784c43fe714cce80cc1199fed1d89c, type: 2}
+  carpetBottomLeftTile: {fileID: 11400000, guid: 0fd5a2806c8a4ef1b1bcf25076c70401, type: 2}
+  carpetBottomRightTile: {fileID: 11400000, guid: 7fbb79a1420b4bdfb749b826a803a19c, type: 2}
+  floorFallbackColor: {r: 0.42, g: 0.45, b: 0.39, a: 1}
+  wallFallbackColor: {r: 0.18, g: 0.19, b: 0.18, a: 1}
+  carpetFallbackColor: {r: 0.2, g: 0.55, b: 0.45, a: 1}
+  usarFallbackVisualParaChaoEParede: 0
+  gerarAoIniciar: 1
+  popularMapa: 1
+  criarTriggersTapete: 1
+  bloquearParedes: 1
+  jogadorPrefab: {fileID: 629184534772852777, guid: e83d5612a59d9484c9cdce44cfbe73db, type: 3}
+  cobraPrefab: {fileID: 1398951537225469179, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
+  cientistaPrefab: {fileID: 8530458442630155495, guid: f3855360a5557034fa4fd74308cfbc96, type: 3}
+  cameraPrincipal: {fileID: 67559420}
+  carpetMaterials:
+  - {fileID: 2100000, guid: bfe1d23f1744c2f44ba2430e36ca4998, type: 2}
+  - {fileID: 2100000, guid: 77a9b4c460939ea4b885f84eb608dd79, type: 2}
+  - {fileID: 2100000, guid: c0b79a1940edc78439fe042801652110, type: 2}
+  - {fileID: 2100000, guid: b4fdcac382ee2a94c917e81969d3b98b, type: 2}
+  gerarPuzzle: 1
+  caixaSprite: {fileID: -8315812067198513465, guid: 72c4ad8987f30ad489746c9e346c528f, type: 3}
+  botaoSprite: {fileID: -597188345251438812, guid: aea5b74f94051924793a1e8908bfb376, type: 3}
+  botaoPressionadoSprite: {fileID: 8719759594145772367, guid: 9fbe5c8e6fb6a064d9892258566e7bbc, type: 3}
+  tamanhoVisualPuzzle: 0.9
 --- !u!4 &306755563
 Transform:
   m_ObjectHideFlags: 0

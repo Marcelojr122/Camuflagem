@@ -258,10 +258,20 @@ MonoBehaviour:
   maxCarpetsPerCorridor: 2
   seed: 12345
   randomSeed: 1
+  imprimirMapaNoConsole: 0
   tilemap: {fileID: 0}
   floorTile: {fileID: 0}
   wallTile: {fileID: 0}
   carpetTile: {fileID: 0}
+  gerarAoIniciar: 0
+  popularMapa: 0
+  criarTriggersTapete: 0
+  bloquearParedes: 0
+  jogadorPrefab: {fileID: 0}
+  cobraPrefab: {fileID: 0}
+  cientistaPrefab: {fileID: 0}
+  cameraPrincipal: {fileID: 0}
+  carpetMaterials: []
 --- !u!4 &880530000
 Transform:
   m_ObjectHideFlags: 0
