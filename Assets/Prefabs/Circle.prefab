@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5887871370817197969}
   - component: {fileID: 2105969440379731461}
-  - component: {fileID: 3439901853528508987}
   - component: {fileID: 8929985534775705257}
   m_Layer: 0
   m_Name: Circle
@@ -93,20 +92,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &3439901853528508987
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7574509054263255415}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc0d016e4460e96438cb61ea7629e105, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MudarCor
-  hue: 1
-  velocidadeMudaCor: 1
 --- !u!58 &8929985534775705257
 CircleCollider2D:
   m_ObjectHideFlags: 0
