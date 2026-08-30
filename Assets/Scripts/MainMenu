@@ -1,0 +1,452 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public class MainMenu : MonoBehaviour
+{
+    [Header("CENA DO JOGO")]
+    [Tooltip("Digite aqui o nome exato da cena que será aberta pelo botão PLAY.")]
+    public string gameSceneName = "Game";
+
+
+    [Header("NOME DO JOGO")]
+    public string gameTitle = "COMALEO";
+
+
+    [Header("PERSONAGEM")]
+    [Tooltip("Arraste o sprite do personagem para este campo.")]
+    public Sprite characterSprite;
+
+
+    [Header("FUNDO")]
+    public Color backgroundColor =
+        new Color(0.08f, 0.12f, 0.10f, 1f);
+
+
+    [Header("BOTÃO PLAY")]
+    public Color buttonColor =
+        new Color(0.20f, 0.65f, 0.25f, 1f);
+
+    public Color buttonTextColor =
+        Color.white;
+
+    public Vector2 buttonSize =
+        new Vector2(300f, 90f);
+
+
+    [Header("TÍTULO")]
+    public int titleFontSize = 90;
+
+    public Color titleColor =
+        Color.white;
+
+
+    [Header("PERSONAGEM - TAMANHO")]
+    public Vector2 characterSize =
+        new Vector2(180f, 180f);
+
+
+    private Canvas canvas;
+
+
+    // =========================================================
+    // START
+    // =========================================================
+
+    private void Start()
+    {
+        CreateMenu();
+    }
+
+
+    // =========================================================
+    // CRIAR MENU
+    // =========================================================
+
+    private void CreateMenu()
+    {
+        CreateCanvas();
+
+        CreateBackground();
+
+        CreateTitle();
+
+        CreateCharacter();
+
+        CreatePlayButton();
+    }
+
+
+    // =========================================================
+    // CANVAS
+    // =========================================================
+
+    private void CreateCanvas()
+    {
+        GameObject canvasObject =
+            new GameObject("Menu Canvas");
+
+        canvas =
+            canvasObject.AddComponent<Canvas>();
+
+        canvas.renderMode =
+            RenderMode.ScreenSpaceOverlay;
+
+
+        CanvasScaler scaler =
+            canvasObject.AddComponent<CanvasScaler>();
+
+        scaler.uiScaleMode =
+            CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
+        scaler.referenceResolution =
+            new Vector2(1920f, 1080f);
+
+        scaler.screenMatchMode =
+            CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+
+        scaler.matchWidthOrHeight =
+            0.5f;
+
+
+        canvasObject.AddComponent<GraphicRaycaster>();
+    }
+
+
+    // =========================================================
+    // FUNDO
+    // =========================================================
+
+    private void CreateBackground()
+    {
+        GameObject backgroundObject =
+            new GameObject("Background");
+
+        backgroundObject.transform.SetParent(
+            canvas.transform,
+            false
+        );
+
+
+        Image background =
+            backgroundObject.AddComponent<Image>();
+
+        background.color =
+            backgroundColor;
+
+
+        RectTransform rect =
+            backgroundObject.GetComponent<RectTransform>();
+
+        rect.anchorMin =
+            Vector2.zero;
+
+        rect.anchorMax =
+            Vector2.one;
+
+        rect.offsetMin =
+            Vector2.zero;
+
+        rect.offsetMax =
+            Vector2.zero;
+    }
+
+
+    // =========================================================
+    // TÍTULO
+    // =========================================================
+
+    private void CreateTitle()
+    {
+        GameObject titleObject =
+            new GameObject("Game Title");
+
+        titleObject.transform.SetParent(
+            canvas.transform,
+            false
+        );
+
+
+        Text title =
+            titleObject.AddComponent<Text>();
+
+        title.text =
+            gameTitle;
+
+        title.font =
+            Resources.GetBuiltinResource<Font>(
+                "LegacyRuntime.ttf"
+            );
+
+        title.fontSize =
+            titleFontSize;
+
+        title.fontStyle =
+            FontStyle.Bold;
+
+        title.alignment =
+            TextAnchor.MiddleCenter;
+
+        title.color =
+            titleColor;
+
+
+        RectTransform rect =
+            titleObject.GetComponent<RectTransform>();
+
+        rect.anchorMin =
+            new Vector2(0.5f, 0.5f);
+
+        rect.anchorMax =
+            new Vector2(0.5f, 0.5f);
+
+        rect.pivot =
+            new Vector2(0.5f, 0.5f);
+
+        rect.anchoredPosition =
+            new Vector2(0f, 300f);
+
+        rect.sizeDelta =
+            new Vector2(900f, 150f);
+    }
+
+
+    // =========================================================
+    // PERSONAGEM
+    // =========================================================
+
+    private void CreateCharacter()
+    {
+        if (characterSprite == null)
+        {
+            Debug.LogWarning(
+                "MainMenu: Nenhum personagem foi definido."
+            );
+
+            return;
+        }
+
+
+        GameObject characterObject =
+            new GameObject("Character");
+
+        characterObject.transform.SetParent(
+            canvas.transform,
+            false
+        );
+
+
+        Image character =
+            characterObject.AddComponent<Image>();
+
+        character.sprite =
+            characterSprite;
+
+        character.preserveAspect =
+            true;
+
+
+        RectTransform rect =
+            characterObject.GetComponent<RectTransform>();
+
+        rect.anchorMin =
+            new Vector2(0.5f, 0.5f);
+
+        rect.anchorMax =
+            new Vector2(0.5f, 0.5f);
+
+        rect.pivot =
+            new Vector2(0.5f, 0.5f);
+
+        rect.anchoredPosition =
+            new Vector2(0f, 70f);
+
+        rect.sizeDelta =
+            characterSize;
+    }
+
+
+    // =========================================================
+    // BOTÃO PLAY
+    // =========================================================
+
+    private void CreatePlayButton()
+    {
+        GameObject buttonObject =
+            new GameObject("Play Button");
+
+        buttonObject.transform.SetParent(
+            canvas.transform,
+            false
+        );
+
+
+        // -----------------------------------------------------
+        // IMAGEM DO BOTÃO
+        // -----------------------------------------------------
+
+        Image buttonImage =
+            buttonObject.AddComponent<Image>();
+
+        buttonImage.color =
+            buttonColor;
+
+
+        // -----------------------------------------------------
+        // BOTÃO
+        // -----------------------------------------------------
+
+        Button button =
+            buttonObject.AddComponent<Button>();
+
+
+        // -----------------------------------------------------
+        // TAMANHO
+        // -----------------------------------------------------
+
+        RectTransform buttonRect =
+            buttonObject.GetComponent<RectTransform>();
+
+        buttonRect.anchorMin =
+            new Vector2(0.5f, 0.5f);
+
+        buttonRect.anchorMax =
+            new Vector2(0.5f, 0.5f);
+
+        buttonRect.pivot =
+            new Vector2(0.5f, 0.5f);
+
+        buttonRect.anchoredPosition =
+            new Vector2(0f, -190f);
+
+        buttonRect.sizeDelta =
+            buttonSize;
+
+
+        // -----------------------------------------------------
+        // TEXTO
+        // -----------------------------------------------------
+
+        GameObject textObject =
+            new GameObject("PLAY Text");
+
+        textObject.transform.SetParent(
+            buttonObject.transform,
+            false
+        );
+
+
+        Text playText =
+            textObject.AddComponent<Text>();
+
+        playText.text =
+            "PLAY";
+
+        playText.font =
+            Resources.GetBuiltinResource<Font>(
+                "LegacyRuntime.ttf"
+            );
+
+        playText.fontSize =
+            45;
+
+        playText.fontStyle =
+            FontStyle.Bold;
+
+        playText.alignment =
+            TextAnchor.MiddleCenter;
+
+        playText.color =
+            buttonTextColor;
+
+        playText.raycastTarget =
+            false;
+
+
+        // -----------------------------------------------------
+        // ÁREA DO TEXTO
+        // -----------------------------------------------------
+
+        RectTransform textRect =
+            textObject.GetComponent<RectTransform>();
+
+        textRect.anchorMin =
+            Vector2.zero;
+
+        textRect.anchorMax =
+            Vector2.one;
+
+        textRect.offsetMin =
+            Vector2.zero;
+
+        textRect.offsetMax =
+            Vector2.zero;
+
+
+        // -----------------------------------------------------
+        // EFEITO DO BOTÃO
+        // -----------------------------------------------------
+
+        ColorBlock colors =
+            button.colors;
+
+        colors.normalColor =
+            buttonColor;
+
+        colors.highlightedColor =
+            new Color(
+                Mathf.Clamp01(buttonColor.r + 0.10f),
+                Mathf.Clamp01(buttonColor.g + 0.10f),
+                Mathf.Clamp01(buttonColor.b + 0.10f),
+                buttonColor.a
+            );
+
+        colors.pressedColor =
+            new Color(
+                Mathf.Clamp01(buttonColor.r - 0.10f),
+                Mathf.Clamp01(buttonColor.g - 0.10f),
+                Mathf.Clamp01(buttonColor.b - 0.10f),
+                buttonColor.a
+            );
+
+        button.colors =
+            colors;
+
+
+        // -----------------------------------------------------
+        // CLIQUE
+        // -----------------------------------------------------
+
+        button.onClick.AddListener(
+            StartGame
+        );
+    }
+
+
+    // =========================================================
+    // INICIAR JOGO
+    // =========================================================
+
+    public void StartGame()
+    {
+        if (string.IsNullOrWhiteSpace(gameSceneName))
+        {
+            Debug.LogError(
+                "MainMenu: O nome da cena do jogo está vazio."
+            );
+
+            return;
+        }
+
+
+        Debug.Log(
+            "Abrindo cena: " +
+            gameSceneName
+        );
+
+
+        SceneManager.LoadScene(
+            gameSceneName
+        );
+    }
+}
