@@ -650,7 +650,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: d2178820521b84d4d9ddfa3d6bdb73bf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1103,7 +1103,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 20
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2208733653786146903, guid: 19765d709cf7e0f46b76772e4e13daf2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1142,7 +1142,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc0d016e4460e96438cb61ea7629e105, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MudarCor
-  velocidadeMudaCor: 0.106
 --- !u!114 &1856313878
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -156,7 +156,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0.07, g: 0.09, b: 0.1, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -355,11 +355,16 @@ MonoBehaviour:
   wallLeftTile: {fileID: 11400000, guid: e8b60b4f87305824e96c337653be55ab, type: 2}
   wallRightTile: {fileID: 11400000, guid: 732cc574cfeb53445aa0cd540a046c9a, type: 2}
   wallBottomTile: {fileID: 11400000, guid: 82b17fc6fa87f394591a6d1115663412, type: 2}
-  wallTile: {fileID: 11400000, guid: 5b32a97254d088c4483a2d316b222305, type: 2}
+  wallTile: {fileID: 11400000, guid: b541833de1d94350bb1a9bb589bed737, type: 2}
   wallCornerTopLeftTile: {fileID: 11400000, guid: 9818d8bf7efce2643924c62bd30710bd, type: 2}
   wallCornerTopRightTile: {fileID: 11400000, guid: 2384a050e39ebc245a868d51adea4dd9, type: 2}
   wallCornerBottomLeftTile: {fileID: 11400000, guid: b51a1748557e506459197ace75d23a2f, type: 2}
   wallCornerBottomRightTile: {fileID: 11400000, guid: 44364633dc4f48544b4749462f83f1b1, type: 2}
+  wallInnerCornerTopLeftTile: {fileID: 0}
+  wallInnerCornerTopRightTile: {fileID: 0}
+  wallInnerCornerBottomLeftTile: {fileID: 0}
+  wallInnerCornerBottomRightTile: {fileID: 0}
+  espessuraColisaoParede: 0.15
   carpetTile: {fileID: 11400000, guid: 20d9cb10a1f448d4bbd799d16f96d963, type: 2}
   carpetTopTile: {fileID: 11400000, guid: 3d10a0c3ecaf45c0b9a41a37f5d4707b, type: 2}
   carpetBottomTile: {fileID: 11400000, guid: fdc4e8f4a4d94234825b4c8559f89c3d, type: 2}
@@ -371,7 +376,6 @@ MonoBehaviour:
   carpetBottomRightTile: {fileID: 11400000, guid: 7fbb79a1420b4bdfb749b826a803a19c, type: 2}
   floorFallbackColor: {r: 0.42, g: 0.45, b: 0.39, a: 1}
   wallFallbackColor: {r: 0.18, g: 0.19, b: 0.18, a: 1}
-  carpetFallbackColor: {r: 0.2, g: 0.55, b: 0.45, a: 1}
   usarFallbackVisualParaChaoEParede: 0
   gerarAoIniciar: 1
   popularMapa: 1
@@ -381,12 +385,11 @@ MonoBehaviour:
   cobraPrefab: {fileID: 1398951537225469179, guid: 09346d9cd5f08ae4582f84b1f4cfec55, type: 3}
   cientistaPrefab: {fileID: 8530458442630155495, guid: f3855360a5557034fa4fd74308cfbc96, type: 3}
   cameraPrincipal: {fileID: 67559420}
-  carpetMaterials:
-  - {fileID: 2100000, guid: bfe1d23f1744c2f44ba2430e36ca4998, type: 2}
-  - {fileID: 2100000, guid: 77a9b4c460939ea4b885f84eb608dd79, type: 2}
-  - {fileID: 2100000, guid: c0b79a1940edc78439fe042801652110, type: 2}
-  - {fileID: 2100000, guid: b4fdcac382ee2a94c917e81969d3b98b, type: 2}
+  usarGerenciadorDeFases: 1
+  quantidadeCobras: 1
+  quantidadeCientistas: 1
   gerarPuzzle: 1
+  quantidadeBotoesPuzzle: 1
   caixaSprite: {fileID: -8315812067198513465, guid: 72c4ad8987f30ad489746c9e346c528f, type: 3}
   botaoSprite: {fileID: -597188345251438812, guid: aea5b74f94051924793a1e8908bfb376, type: 3}
   botaoPressionadoSprite: {fileID: 8719759594145772367, guid: 9fbe5c8e6fb6a064d9892258566e7bbc, type: 3}
@@ -398,6 +401,60 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 306755561}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &358906318
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 358906320}
+  - component: {fileID: 358906319}
+  m_Layer: 0
+  m_Name: GerenciadorTelasJogo
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &358906319
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 358906318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f0b3e91a1ef42e2b25ed477990def10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GerenciadorTelasJogo
+  fundoMenu: {fileID: 21300000, guid: fe95bcdebc1fbbb48a9da50af12a160a, type: 3}
+  fundoGameOver: {fileID: 21300000, guid: 85d5bdb8ee7d91f459d2e64f887d6ca0, type: 3}
+  fundoVitoria: {fileID: 21300000, guid: 07d30eee1949fd748ad3e8abe5e8ec9d, type: 3}
+  musicaJogo: {fileID: 8300000, guid: bba1b51b3b4680140aebd88f068c9e0b, type: 3}
+  musicaGameOver: {fileID: 8300000, guid: 213024a59bdbd5c44bbd1a14c8beaaae, type: 3}
+  somPushBox: {fileID: 8300000, guid: 4f2d1ae8692edef4bb1fc79c5f05511e, type: 3}
+  musicaVitoria: {fileID: 8300000, guid: 65414e09773639d419225fe9e988b681, type: 3}
+  volumeMusica: 0.55
+  volumeEfeitos: 0.8
+  mostrarMenuAoIniciar: 1
+--- !u!4 &358906320
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 358906318}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -465,7 +522,7 @@ TilemapRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: d2178820521b84d4d9ddfa3d6bdb73bf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -540,3 +597,4 @@ SceneRoots:
   - {fileID: 67559421}
   - {fileID: 306755563}
   - {fileID: 104039161}
+  - {fileID: 358906320}

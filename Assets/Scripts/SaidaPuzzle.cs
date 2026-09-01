@@ -9,6 +9,8 @@ public class SaidaPuzzle : MonoBehaviour
 
     private Collider2D colisor;
     private SpriteRenderer spriteRenderer;
+    private int botoesNecessarios = 1;
+    private int botoesPressionados;
 
     public bool EstaAberta { get; private set; }
 
@@ -17,6 +19,20 @@ public class SaidaPuzzle : MonoBehaviour
         colisor = GetComponent<Collider2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         AtualizarEstado();
+    }
+
+    public void ConfigurarRequisitos(int quantidadeBotoes)
+    {
+        botoesNecessarios = Mathf.Max(0, quantidadeBotoes);
+        botoesPressionados = 0;
+        DefinirAberta(botoesNecessarios == 0);
+    }
+
+    public void RegistrarBotao(bool pressionado)
+    {
+        botoesPressionados += pressionado ? 1 : -1;
+        botoesPressionados = Mathf.Clamp(botoesPressionados, 0, botoesNecessarios);
+        DefinirAberta(botoesPressionados >= botoesNecessarios);
     }
 
     public void DefinirAberta(bool aberta)
@@ -53,6 +69,7 @@ public class SaidaPuzzle : MonoBehaviour
         if (EstaAberta && collision.CompareTag("Player"))
         {
             Debug.Log("Saida aberta alcancada.");
+            GerenciadorFases.ConcluirFaseAtual();
         }
     }
 }

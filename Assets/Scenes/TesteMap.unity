@@ -271,7 +271,6 @@ MonoBehaviour:
   cobraPrefab: {fileID: 0}
   cientistaPrefab: {fileID: 0}
   cameraPrincipal: {fileID: 0}
-  carpetMaterials: []
 --- !u!4 &880530000
 Transform:
   m_ObjectHideFlags: 0

@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Tilemaps;
 
 public class ProceduralMap : MonoBehaviour
 {
     private const int TamanhoSpriteFallback = 16;
+    private static readonly Color CorFundoMapa = new Color(0.09f, 0.1f, 0.1f, 1f);
 
     [Header("Tamanho do mapa")]
     public int mapWidth = 80;
@@ -77,7 +79,6 @@ public class ProceduralMap : MonoBehaviour
     [Header("Cores fallback")]
     public Color floorFallbackColor = new Color(0.42f, 0.45f, 0.39f, 1f);
     public Color wallFallbackColor = new Color(0.18f, 0.19f, 0.18f, 1f);
-    public Color carpetFallbackColor = new Color(0.2f, 0.55f, 0.45f, 1f);
     public bool usarFallbackVisualParaChaoEParede = false;
 
     [Header("Gameplay")]
@@ -89,20 +90,13 @@ public class ProceduralMap : MonoBehaviour
     public GameObject cobraPrefab;
     public GameObject cientistaPrefab;
     public Camera cameraPrincipal;
-
-    [Header("Material do chao e paredes")]
-    [Tooltip("Opcional. Material normal usado SOMENTE pelo Tilemap principal (chao e paredes). Se ficar vazio e o Tilemap estiver usando SpriteHue, o codigo cria um material Sprite normal automaticamente.")]
-    public Material materialChaoParede;
-
-    [Header("Hue dos tapetes")]
-    [Tooltip("Opcional. Se existir um Material SpriteHue nos Assets, arraste aqui. No Editor o codigo tambem tenta encontra-lo automaticamente.")]
-    public Material spriteHueMaterial;
-    [Tooltip("Opcional. Shader SpriteHue. Se vazio, o codigo tenta Shader.Find(\"Custom/SpriteHue\").")]
-    public Shader spriteHueShader;
-    public Material[] carpetMaterials;
+    public bool usarGerenciadorDeFases = true;
+    public int quantidadeCobras = 1;
+    public int quantidadeCientistas = 1;
 
     [Header("Puzzle de saida")]
     public bool gerarPuzzle = true;
+    [Min(0)] public int quantidadeBotoesPuzzle = 1;
     public Sprite caixaSprite;
     public Sprite botaoSprite;
     public Sprite botaoPressionadoSprite;
@@ -115,14 +109,18 @@ public class ProceduralMap : MonoBehaviour
     private readonly List<Vector2Int> posicoesChao = new List<Vector2Int>();
     private readonly List<Vector2Int> posicoesTapete = new List<Vector2Int>();
     private readonly Dictionary<Vector2Int, float> huesTapetes = new Dictionary<Vector2Int, float>();
-    private readonly Dictionary<float, Material> materiaisHueTapetes = new Dictionary<float, Material>();
     private Transform objetosGerados;
     private TileBase floorFallbackTile;
     private TileBase wallFallbackRuntimeTile;
-    private TileBase carpetFallbackRuntimeTile;
-    private Transform tapetesVisuaisGerados;
-    private Material spriteHueMaterialEncontrado;
-    private Material materialNormalTilemapRuntime;
+    private bool usarMapaFixo;
+    private string[] mapaFixoAtual;
+    private Vector2Int? celulaJogadorFixa;
+    private Vector2Int? celulaSaidaFixa;
+    private readonly List<Vector2Int> botoesFixos = new List<Vector2Int>();
+    private readonly List<Vector2Int> caixasFixas = new List<Vector2Int>();
+    private readonly List<Vector2Int> cobrasFixas = new List<Vector2Int>();
+    private readonly List<Vector2Int> cientistasFixos = new List<Vector2Int>();
+    private int fasePrincipalAtual = 1;
 
     private enum TipoParede
     {
@@ -154,7 +152,25 @@ public class ProceduralMap : MonoBehaviour
 
     private void Start()
     {
-        if (gerarAoIniciar)
+        GerenciadorTelasJogo.GarantirInstancia();
+
+        if (!gerarAoIniciar)
+        {
+            return;
+        }
+
+        if (usarGerenciadorDeFases)
+        {
+            GerenciadorFases gerenciador = FindFirstObjectByType<GerenciadorFases>();
+
+            if (gerenciador == null)
+            {
+                gerenciador = new GameObject("GerenciadorFases").AddComponent<GerenciadorFases>();
+            }
+
+            gerenciador.IniciarFase(this);
+        }
+        else
         {
             GenerateMap();
         }
@@ -164,6 +180,7 @@ public class ProceduralMap : MonoBehaviour
     public void GenerateMap()
     {
         EncontrarTilemapSePreciso();
+        PrepararRenderizacaoDaCena();
 
         if (tilemap == null)
         {
@@ -171,24 +188,26 @@ public class ProceduralMap : MonoBehaviour
             return;
         }
 
-        // GARANTIA IMPORTANTE:
-        // SpriteHue nunca pode ficar no Tilemap principal.
-        // O Tilemap principal desenha somente chao e paredes.
-        PrepararMaterialDoTilemapPrincipal();
-
         if (randomSeed)
             seed = Random.Range(0, 999999);
 
         Random.InitState(seed);
 
-        map = new int[mapWidth, mapHeight];
         rooms.Clear();
-        LimparTapetesVisuaisGerados();
-        LimparMateriaisHueTapetes();
         huesTapetes.Clear();
 
-        GenerateRooms();
-        ConnectRooms();
+        if (usarMapaFixo && mapaFixoAtual != null && mapaFixoAtual.Length > 0)
+        {
+            GenerateFixedMap();
+        }
+        else
+        {
+            LimparDadosMapaFixo();
+            map = new int[mapWidth, mapHeight];
+            GenerateRooms();
+            ConnectRooms();
+        }
+
         DefinirHuesDosTapetes();
         GenerateWalls();
         DrawTiles();
@@ -203,6 +222,175 @@ public class ProceduralMap : MonoBehaviour
         {
             PrintMap(map);
         }
+    }
+
+
+    public void ConfigurarTutorialDoJogo(int indiceTutorial)
+    {
+        fasePrincipalAtual = 0;
+        randomSeed = false;
+        usarMapaFixo = true;
+        mapaFixoAtual = ObterMapaTutorial(indiceTutorial);
+        gerarPuzzle = indiceTutorial == 2;
+        quantidadeBotoesPuzzle = gerarPuzzle ? 1 : 0;
+        quantidadeCobras = 0;
+        quantidadeCientistas = indiceTutorial == 3 ? 1 : 0;
+        minCarpetsPerRoom = 0;
+        maxCarpetsPerRoom = 0;
+        minCarpetsPerCorridor = 0;
+        maxCarpetsPerCorridor = 0;
+    }
+
+
+    public void ConfigurarFasePrincipalDoJogo(int fase)
+    {
+        fasePrincipalAtual = Mathf.Max(1, fase);
+        usarMapaFixo = false;
+        mapaFixoAtual = null;
+        randomSeed = false;
+        seed = 50000 + fasePrincipalAtual;
+
+        mapWidth = Mathf.Clamp(36 + fasePrincipalAtual * 3, 40, 84);
+        mapHeight = Mathf.Clamp(28 + fasePrincipalAtual * 2, 30, 60);
+        roomCount = Mathf.Clamp(7 + fasePrincipalAtual / 2, 8, 16);
+        minRoomWidth = 5;
+        maxRoomWidth = Mathf.Clamp(9 + fasePrincipalAtual / 4, 9, 14);
+        minRoomHeight = 4;
+        maxRoomHeight = Mathf.Clamp(8 + fasePrincipalAtual / 5, 8, 12);
+
+        minCarpetsPerRoom = 1;
+        maxCarpetsPerRoom = Mathf.Clamp(1 + fasePrincipalAtual / 5, 2, 4);
+        minCarpetsPerCorridor = 1;
+        maxCarpetsPerCorridor = Mathf.Clamp(1 + fasePrincipalAtual / 6, 1, 3);
+
+        gerarPuzzle = true;
+        quantidadeBotoesPuzzle = Mathf.Clamp(1 + (fasePrincipalAtual - 1) / 4, 1, 4);
+        quantidadeCobras = Mathf.Clamp(1 + fasePrincipalAtual / 5, 1, 4);
+        quantidadeCientistas = Mathf.Clamp(fasePrincipalAtual / 3, 0, 5);
+    }
+
+
+    private static string[] ObterMapaTutorial(int indiceTutorial)
+    {
+        switch (indiceTutorial)
+        {
+            case 1:
+                return new[]
+                {
+                    "########################",
+                    "#P....TTTTTT.......E...#",
+                    "#.....TTTTTT...........#",
+                    "#......................#",
+                    "#......................#",
+                    "########################"
+                };
+
+            case 2:
+                return new[]
+                {
+                    "###########################",
+                    "#P....................E...#",
+                    "#.........................#",
+                    "#..........X....B.........#",
+                    "#.........................#",
+                    "###########################"
+                };
+
+            default:
+                return new[]
+                {
+                    "############################",
+                    "#P....TTTTTT.......S....E..#",
+                    "#.....TTTTTT...............#",
+                    "#..........................#",
+                    "#..........................#",
+                    "############################"
+                };
+        }
+    }
+
+
+    private void GenerateFixedMap()
+    {
+        LimparDadosMapaFixo();
+
+        mapHeight = mapaFixoAtual.Length;
+        mapWidth = 0;
+
+        foreach (string linha in mapaFixoAtual)
+        {
+            mapWidth = Mathf.Max(mapWidth, linha.Length);
+        }
+
+        map = new int[mapWidth, mapHeight];
+
+        for (int linha = 0; linha < mapaFixoAtual.Length; linha++)
+        {
+            string texto = mapaFixoAtual[linha];
+            int y = mapHeight - 1 - linha;
+
+            for (int x = 0; x < mapWidth; x++)
+            {
+                char caractere = x < texto.Length ? texto[x] : ' ';
+                Vector2Int posicao = new Vector2Int(x, y);
+
+                switch (caractere)
+                {
+                    case '#':
+                        map[x, y] = 2;
+                        break;
+
+                    case 'T':
+                        map[x, y] = 3;
+                        break;
+
+                    case 'P':
+                        celulaJogadorFixa = posicao;
+                        map[x, y] = 1;
+                        break;
+
+                    case 'E':
+                        celulaSaidaFixa = posicao;
+                        map[x, y] = 1;
+                        break;
+
+                    case 'B':
+                        botoesFixos.Add(posicao);
+                        map[x, y] = 1;
+                        break;
+
+                    case 'X':
+                        caixasFixas.Add(posicao);
+                        map[x, y] = 1;
+                        break;
+
+                    case 'M':
+                        cobrasFixas.Add(posicao);
+                        map[x, y] = 1;
+                        break;
+
+                    case 'S':
+                        cientistasFixos.Add(posicao);
+                        map[x, y] = 1;
+                        break;
+
+                    case '.':
+                        map[x, y] = 1;
+                        break;
+                }
+            }
+        }
+    }
+
+
+    private void LimparDadosMapaFixo()
+    {
+        celulaJogadorFixa = null;
+        celulaSaidaFixa = null;
+        botoesFixos.Clear();
+        caixasFixas.Clear();
+        cobrasFixas.Clear();
+        cientistasFixos.Clear();
     }
 
 
@@ -1094,7 +1282,7 @@ public class ProceduralMap : MonoBehaviour
 
     private void DrawTiles()
     {
-        tilemap.ClearAllTiles();
+        LimparTilemapAntesDeDesenhar();
         posicoesChao.Clear();
         posicoesTapete.Clear();
 
@@ -1107,14 +1295,14 @@ public class ProceduralMap : MonoBehaviour
 
                 switch (map[x, y])
                 {
-                    case 1:
-                        tilemap.SetTile(
-                            position,
-                            ObterTileChao()
-                        );
+                    case 0:
+                        AplicarTile(position, ObterTileParede(wallTile));
                         tilemap.SetColliderType(position, Tile.ColliderType.None);
-                        tilemap.SetTileFlags(position, TileFlags.None);
-                        tilemap.SetColor(position, Color.white);
+                        break;
+
+                    case 1:
+                        AplicarTile(position, ObterTileChao());
+                        tilemap.SetColliderType(position, Tile.ColliderType.None);
                         posicoesChao.Add(new Vector2Int(x, y));
                         break;
 
@@ -1124,37 +1312,56 @@ public class ProceduralMap : MonoBehaviour
 
                         if (wall != null)
                         {
-                            tilemap.SetTile(
-                                position,
-                                wall
-                            );
+                            AplicarTile(position, wall);
                             // O visual continua no Tilemap, mas a colisao e criada separadamente
                             // para podermos colocar Bottom/Left/Right na borda correta.
                             tilemap.SetColliderType(position, Tile.ColliderType.None);
-                            tilemap.SetTileFlags(position, TileFlags.None);
-                            tilemap.SetColor(position, Color.white);
                         }
 
                         break;
 
                     case 3:
-                        // O Tilemap principal nunca recebe SpriteHue e nunca desenha
-                        // a arte do tapete. Nesta camada existe apenas o chao que fica
-                        // por baixo dele. O tapete visivel e desenhado em Tilemaps
-                        // separados por CriarTapetesVisuaisComSpriteHue().
-                        tilemap.SetTile(
-                            position,
-                            ObterTileChao()
-                        );
+                        AplicarTile(position, ObterTileChao());
                         tilemap.SetColliderType(position, Tile.ColliderType.None);
-                        tilemap.SetTileFlags(position, TileFlags.None);
-                        tilemap.SetColor(position, Color.white);
                         posicoesChao.Add(new Vector2Int(x, y));
                         posicoesTapete.Add(new Vector2Int(x, y));
                         break;
                 }
             }
         }
+
+        tilemap.RefreshAllTiles();
+        tilemap.CompressBounds();
+    }
+
+
+    private void LimparTilemapAntesDeDesenhar()
+    {
+        tilemap.color = Color.white;
+        BoundsInt bounds = tilemap.cellBounds;
+
+        foreach (Vector3Int posicao in bounds.allPositionsWithin)
+        {
+            tilemap.SetTileFlags(posicao, TileFlags.None);
+            tilemap.SetColor(posicao, Color.white);
+            tilemap.SetTransformMatrix(posicao, Matrix4x4.identity);
+        }
+
+        tilemap.ClearAllTiles();
+    }
+
+
+    private void AplicarTile(Vector3Int posicao, TileBase tile)
+    {
+        if (tile == null)
+        {
+            return;
+        }
+
+        tilemap.SetTile(posicao, tile);
+        tilemap.SetTileFlags(posicao, TileFlags.None);
+        tilemap.SetTransformMatrix(posicao, Matrix4x4.identity);
+        tilemap.SetColor(posicao, Color.white);
     }
 
 
@@ -1177,13 +1384,6 @@ public class ProceduralMap : MonoBehaviour
         }
 
         return ObterTileValido(tileConfigurado, ref wallFallbackRuntimeTile, wallFallbackColor, "ParedeFallback", Tile.ColliderType.Sprite);
-    }
-
-
-    private TileBase ObterTileTapete(int x, int y)
-    {
-        TileBase tileEscolhido = EscolherTileTapete(x, y);
-        return ObterTileValido(tileEscolhido, ref carpetFallbackRuntimeTile, carpetFallbackColor, "TapeteFallback", Tile.ColliderType.None);
     }
 
 
@@ -1375,51 +1575,83 @@ public class ProceduralMap : MonoBehaviour
     }
 
 
-    private void PrepararFisicaDoTilemap()
+    private void PrepararRenderizacaoDaCena()
     {
-        if (!bloquearParedes || tilemap == null)
+        ConfigurarFundoDaCamera();
+        GarantirLuzGlobal2D();
+    }
+
+
+    private void ConfigurarFundoDaCamera()
+    {
+        Camera cameraDaCena = cameraPrincipal != null ? cameraPrincipal : Camera.main;
+
+        if (cameraDaCena == null)
         {
             return;
         }
 
-        Rigidbody2D corpo = tilemap.GetComponent<Rigidbody2D>();
+        cameraDaCena.clearFlags = CameraClearFlags.SolidColor;
+        cameraDaCena.backgroundColor = new Color(0.07f, 0.09f, 0.1f, 1f);
+    }
 
-        if (corpo == null)
+
+    private static void GarantirLuzGlobal2D()
+    {
+        Light2D[] luzes = FindObjectsByType<Light2D>(FindObjectsSortMode.None);
+
+        foreach (Light2D luz in luzes)
         {
-            corpo = tilemap.gameObject.AddComponent<Rigidbody2D>();
+            if (luz.lightType == Light2D.LightType.Global)
+            {
+                luz.color = Color.white;
+                luz.intensity = Mathf.Max(1f, luz.intensity);
+                return;
+            }
         }
 
-        corpo.bodyType = RigidbodyType2D.Static;
-        corpo.simulated = true;
+        GameObject objetoLuz = new GameObject("Global Light 2D");
+        Light2D luzGlobal = objetoLuz.AddComponent<Light2D>();
+        luzGlobal.lightType = Light2D.LightType.Global;
+        luzGlobal.color = Color.white;
+        luzGlobal.intensity = 1f;
+    }
 
-        CompositeCollider2D composite = tilemap.GetComponent<CompositeCollider2D>();
 
-        if (composite == null)
+    private void PrepararFisicaDoTilemap()
+    {
+        if (tilemap == null)
         {
-            composite = tilemap.gameObject.AddComponent<CompositeCollider2D>();
+            return;
         }
-
-        composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
 
         TilemapCollider2D colisor = tilemap.GetComponent<TilemapCollider2D>();
 
-        if (colisor == null)
+        if (colisor != null)
         {
-            colisor = tilemap.gameObject.AddComponent<TilemapCollider2D>();
+            colisor.enabled = false;
         }
 
-        colisor.compositeOperation = Collider2D.CompositeOperation.Merge;
+        CompositeCollider2D composite = tilemap.GetComponent<CompositeCollider2D>();
+
+        if (composite != null)
+        {
+            composite.enabled = false;
+        }
+
+        Rigidbody2D corpo = tilemap.GetComponent<Rigidbody2D>();
+
+        if (corpo != null)
+        {
+            corpo.simulated = false;
+        }
     }
 
 
     private void PrepararObjetosDeGameplay()
     {
         LimparObjetosGerados();
-
-        // Nao substitui o Tilemap principal. E apenas uma camada visual por cima
-        // usando o SpriteHue. Se o shader/material nao existir, o tapete original
-        // continua aparecendo normalmente no Tilemap.
-        CriarTapetesVisuaisComSpriteHue();
+        CriarFundoVisualDoMapa();
 
         if (bloquearParedes)
         {
@@ -1453,162 +1685,32 @@ public class ProceduralMap : MonoBehaviour
     }
 
 
-    private void PrepararMaterialDoTilemapPrincipal()
+    private void CriarFundoVisualDoMapa()
     {
-        if (tilemap == null)
-            return;
-
-        TilemapRenderer renderer = tilemap.GetComponent<TilemapRenderer>();
-
-        if (renderer == null)
-            return;
-
-        // Se o usuario forneceu explicitamente um material normal para chao/parede,
-        // ele sempre tem prioridade.
-        if (materialChaoParede != null && !EhMaterialSpriteHue(materialChaoParede))
+        if (tilemap == null || map == null)
         {
-            renderer.sharedMaterial = materialChaoParede;
             return;
         }
 
-        Material atual = renderer.sharedMaterial;
+        Vector3 inicio = tilemap.CellToWorld(Vector3Int.zero);
+        Vector3 fim = tilemap.CellToWorld(new Vector3Int(mapWidth, mapHeight, 0));
+        Vector3 centro = (inicio + fim) * 0.5f;
+        centro.z = 0f;
 
-        // Se o material atual nao for SpriteHue, nao mexemos nele.
-        if (atual != null && !EhMaterialSpriteHue(atual))
-            return;
+        GameObject fundo = new GameObject("Fundo Visual Procedural");
+        fundo.transform.SetParent(objetosGerados, false);
+        fundo.transform.position = centro;
 
-        // Neste ponto o Tilemap principal esta sem material ou ficou com SpriteHue
-        // atribuido no Inspector/por uma versao anterior do script. Criamos um
-        // material de sprite NORMAL para chao e paredes.
-        if (materialNormalTilemapRuntime == null)
-        {
-            Shader shaderNormal = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+        SpriteRenderer renderer = fundo.AddComponent<SpriteRenderer>();
+        renderer.sprite = CriarSpriteQuadrado(Color.white, "FundoProceduralSprite");
+        renderer.color = CorFundoMapa;
+        renderer.sortingOrder = -1;
 
-            if (shaderNormal == null)
-                shaderNormal = Shader.Find("Sprites/Default");
-
-            if (shaderNormal != null)
-            {
-                materialNormalTilemapRuntime = new Material(shaderNormal);
-                materialNormalTilemapRuntime.name = "Material Normal - Chao e Paredes (Runtime)";
-            }
-        }
-
-        // Se conseguimos um shader normal, usa ele. Se nao, deixa null para o
-        // TilemapRenderer recorrer ao material padrao da pipeline em vez de SpriteHue.
-        renderer.sharedMaterial = materialNormalTilemapRuntime;
+        float largura = Mathf.Abs(fim.x - inicio.x) + 24f;
+        float altura = Mathf.Abs(fim.y - inicio.y) + 24f;
+        fundo.transform.localScale = new Vector3(Mathf.Max(1f, largura), Mathf.Max(1f, altura), 1f);
     }
 
-
-    private bool EhMaterialSpriteHue(Material material)
-    {
-        if (material == null)
-            return false;
-
-        if (spriteHueMaterial != null && material == spriteHueMaterial)
-            return true;
-
-        Shader shader = material.shader;
-
-        if (shader == null)
-            return false;
-
-        if (spriteHueShader != null && shader == spriteHueShader)
-            return true;
-
-        return shader.name.IndexOf("SpriteHue", System.StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-
-    private void LimparTapetesVisuaisGerados()
-    {
-        if (tapetesVisuaisGerados != null)
-        {
-            DestruirSeguro(tapetesVisuaisGerados.gameObject);
-            tapetesVisuaisGerados = null;
-            return;
-        }
-
-        if (tilemap == null || tilemap.transform.parent == null)
-            return;
-
-        Transform existente = tilemap.transform.parent.Find("Tapetes SpriteHue Procedurais");
-
-        if (existente != null)
-            DestruirSeguro(existente.gameObject);
-    }
-
-
-    private void CriarTapetesVisuaisComSpriteHue()
-    {
-        if (tilemap == null || posicoesTapete.Count == 0)
-            return;
-
-        LimparTapetesVisuaisGerados();
-
-        Transform pai = tilemap.transform.parent;
-        GameObject raiz = new GameObject("Tapetes SpriteHue Procedurais");
-        raiz.transform.SetParent(pai, false);
-        raiz.transform.localPosition = tilemap.transform.localPosition;
-        raiz.transform.localRotation = tilemap.transform.localRotation;
-        raiz.transform.localScale = tilemap.transform.localScale;
-        tapetesVisuaisGerados = raiz.transform;
-
-        TilemapRenderer rendererOriginal = tilemap.GetComponent<TilemapRenderer>();
-        Material materialOriginal = rendererOriginal != null ? rendererOriginal.sharedMaterial : null;
-
-        // IMPORTANTE:
-        // Cada Tilemap abaixo contem UMA UNICA celula de tapete.
-        // Isso impede que um shader SpriteHue que nao se comporte bem com bounds/chunks
-        // grandes do TilemapRenderer pinte areas vazias, chao ou paredes.
-        // O Material continua sendo compartilhado entre todas as celulas do mesmo
-        // tapete, portanto o tapete inteiro permanece com exatamente o mesmo Hue.
-        foreach (Vector2Int posicao in posicoesTapete)
-        {
-            float hue = ObterHueDoTapete(posicao);
-            Material materialHue = ObterMaterialDeTapete(posicao);
-
-            GameObject objeto = new GameObject(
-                $"Tapete Hue {hue:0.##} [{posicao.x},{posicao.y}]"
-            );
-            objeto.transform.SetParent(raiz.transform, false);
-
-            Tilemap tilemapTapete = objeto.AddComponent<Tilemap>();
-            tilemapTapete.tileAnchor = tilemap.tileAnchor;
-            tilemapTapete.orientation = tilemap.orientation;
-
-            TilemapRenderer renderer = objeto.AddComponent<TilemapRenderer>();
-
-            // SpriteHue existe SOMENTE neste renderer de uma unica celula.
-            renderer.sharedMaterial = materialHue != null
-                ? materialHue
-                : materialOriginal;
-
-            if (rendererOriginal != null)
-            {
-                renderer.sortingLayerID = rendererOriginal.sortingLayerID;
-                renderer.sortingOrder = rendererOriginal.sortingOrder + 1;
-            }
-
-            Vector3Int celula = new Vector3Int(posicao.x, posicao.y, 0);
-            tilemapTapete.SetTile(
-                celula,
-                ObterTileTapete(posicao.x, posicao.y)
-            );
-            tilemapTapete.SetColliderType(
-                celula,
-                Tile.ColliderType.None
-            );
-            tilemapTapete.SetTileFlags(
-                celula,
-                TileFlags.None
-            );
-            tilemapTapete.SetColor(
-                celula,
-                Color.white
-            );
-        }
-    }
 
     private void CriarColisoresDasParedes()
     {
@@ -1708,41 +1810,19 @@ public class ProceduralMap : MonoBehaviour
                     // QUINAS EXTERNAS voltam ao comportamento anterior:
                     // duas pequenas bordas de colisao acompanhando a sprite.
                     case TipoParede.CornerTopLeft:
-                        AdicionarColisorBorda(
-                            objeto,
-                            Vector2Int.up,
-                            larguraCelula,
-                            alturaCelula,
-                            espessuraX,
-                            espessuraY
-                        );
-                        AdicionarColisorBorda(
-                            objeto,
-                            Vector2Int.left,
-                            larguraCelula,
-                            alturaCelula,
-                            espessuraX,
-                            espessuraY
-                        );
+                        {
+                            BoxCollider2D completo = objeto.AddComponent<BoxCollider2D>();
+                            completo.size = new Vector2(larguraCelula, alturaCelula);
+                            completo.offset = Vector2.zero;
+                        }
                         break;
 
                     case TipoParede.CornerTopRight:
-                        AdicionarColisorBorda(
-                            objeto,
-                            Vector2Int.up,
-                            larguraCelula,
-                            alturaCelula,
-                            espessuraX,
-                            espessuraY
-                        );
-                        AdicionarColisorBorda(
-                            objeto,
-                            Vector2Int.right,
-                            larguraCelula,
-                            alturaCelula,
-                            espessuraX,
-                            espessuraY
-                        );
+                        {
+                            BoxCollider2D completo = objeto.AddComponent<BoxCollider2D>();
+                            completo.size = new Vector2(larguraCelula, alturaCelula);
+                            completo.offset = Vector2.zero;
+                        }
                         break;
 
                     case TipoParede.CornerBottomLeft:
@@ -1833,135 +1913,87 @@ public class ProceduralMap : MonoBehaviour
     {
         foreach (Vector2Int posicao in posicoesTapete)
         {
+            float hueDoTapete = ObterHueDoTapete(posicao);
             GameObject tapete = new GameObject("Tapete Procedural");
             tapete.tag = "Tapete";
             tapete.transform.SetParent(objetosGerados, false);
             tapete.transform.position = ObterCentroMundo(posicao);
 
+            CriarVisualTapete(tapete.transform, posicao, hueDoTapete);
+
             BoxCollider2D colisor = tapete.AddComponent<BoxCollider2D>();
-            // É somente trigger para a interação do player.
-            // Não deve produzir colisão física.
             colisor.isTrigger = true;
             colisor.size = Vector2.one;
 
-            SpriteRenderer renderer = tapete.AddComponent<SpriteRenderer>();
-            renderer.enabled = false;
-            renderer.sharedMaterial = ObterMaterialDeTapete(posicao);
+            TapeteHue hue = tapete.AddComponent<TapeteHue>();
+            hue.Configurar(hueDoTapete);
         }
     }
 
 
-    private Material ObterMaterialDeTapete(Vector2Int posicao)
+    private void CriarVisualTapete(Transform pai, Vector2Int posicao, float hue)
     {
-        float hue = ObterHueDoTapete(posicao);
+        GameObject visual = new GameObject("Visual");
+        visual.transform.SetParent(pai, false);
+        visual.transform.localPosition = Vector3.zero;
 
-        if (materiaisHueTapetes.TryGetValue(hue, out Material materialExistente))
-            return materialExistente;
+        SpriteRenderer renderer = visual.AddComponent<SpriteRenderer>();
+        renderer.sprite = ObterSpriteTapete(posicao.x, posicao.y);
+        renderer.sortingOrder = 1;
+        renderer.color = Color.white;
 
-        Material materialBase = ObterMaterialBaseSpriteHue();
-        Material material = null;
+        Material materialHue = CriarMaterialHue(hue);
 
-        if (materialBase != null)
+        if (materialHue != null)
         {
-            material = new Material(materialBase);
+            renderer.material = materialHue;
         }
         else
         {
-            Shader shader = spriteHueShader != null
-                ? spriteHueShader
-                : Shader.Find("Custom/SpriteHue");
-
-            if (shader != null)
-                material = new Material(shader);
+            renderer.color = Color.HSVToRGB(hue / 360f, 0.65f, 1f);
         }
 
-        if (material == null)
+        AjustarSpriteParaCelula(visual.transform, renderer.sprite, 1f);
+        CentralizarRenderer(visual, ObterCentroMundo(posicao));
+    }
+
+
+    private Sprite ObterSpriteTapete(int x, int y)
+    {
+        TileBase tile = EscolherTileTapete(x, y);
+
+        if (tile is Tile tilePadrao && tilePadrao.sprite != null)
         {
-            Debug.LogWarning(
-                "ProceduralMap: SpriteHue nao foi encontrado. " +
-                "O tapete continua sendo desenhado normalmente pelo Tilemap, mas sem o shader SpriteHue."
-            );
+            return tilePadrao.sprite;
+        }
+
+        return CriarSpriteQuadrado(Color.white, "TapeteFallbackSprite");
+    }
+
+
+    private static Material CriarMaterialHue(float hue)
+    {
+        Shader shader = Shader.Find("Custom/SpriteHue");
+
+        if (shader == null)
+        {
             return null;
         }
 
-        material.name = $"SpriteHue Tapete {hue:0.##}";
+        Material material = new Material(shader);
+        material.SetFloat("_Hue", Mathf.Repeat(hue, 360f));
 
-        if (material.HasProperty("_Hue"))
+        if (material.HasProperty("_Saturation"))
         {
-            material.SetFloat("_Hue", hue);
-        }
-        else
-        {
-            Debug.LogWarning(
-                $"ProceduralMap: o SpriteHue '{material.shader.name}' nao possui a propriedade _Hue."
-            );
+            material.SetFloat("_Saturation", 1f);
         }
 
-        materiaisHueTapetes[hue] = material;
+        if (material.HasProperty("_Brightness"))
+        {
+            material.SetFloat("_Brightness", 1f);
+        }
+
         return material;
-    }
-
-
-    private Material ObterMaterialBaseSpriteHue()
-    {
-        if (spriteHueMaterial != null)
-            return spriteHueMaterial;
-
-        if (spriteHueMaterialEncontrado != null)
-            return spriteHueMaterialEncontrado;
-
-        // Funciona automaticamente se o Material estiver em uma pasta Resources.
-        spriteHueMaterialEncontrado = Resources.Load<Material>("SpriteHue");
-
-#if UNITY_EDITOR
-        // Durante o desenvolvimento, procura um Material chamado SpriteHue em qualquer
-        // pasta de Assets sem exigir que ele esteja dentro de Resources.
-        if (spriteHueMaterialEncontrado == null)
-        {
-            string[] guids = UnityEditor.AssetDatabase.FindAssets("SpriteHue t:Material");
-
-            if (guids != null && guids.Length > 0)
-            {
-                string caminho = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-                spriteHueMaterialEncontrado = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(caminho);
-            }
-        }
-#endif
-
-        // Mantem compatibilidade com o array que ja existia no projeto.
-        if (spriteHueMaterialEncontrado == null && carpetMaterials != null && carpetMaterials.Length > 0)
-            spriteHueMaterialEncontrado = carpetMaterials[0];
-
-        return spriteHueMaterialEncontrado;
-    }
-
-
-    private void LimparMateriaisHueTapetes()
-    {
-        foreach (Material material in materiaisHueTapetes.Values)
-        {
-            if (material == null)
-                continue;
-
-            if (Application.isPlaying)
-                Destroy(material);
-            else
-                DestroyImmediate(material);
-        }
-
-        materiaisHueTapetes.Clear();
-    }
-
-
-    private void OnDestroy()
-    {
-        if (materialNormalTilemapRuntime != null)
-        {
-            if (Application.isPlaying)
-                Destroy(materialNormalTilemapRuntime);
-            else
-                DestroyImmediate(materialNormalTilemapRuntime);
-        }
     }
 
 
@@ -1983,14 +2015,34 @@ public class ProceduralMap : MonoBehaviour
 
         ConfigurarCamera(jogador.transform);
         GarantirGameOver();
-        CriarInimigo(cobraPrefab, "Cobra", posicaoJogador, Vector2.right);
-        CriarInimigo(cientistaPrefab, "Cientista", posicaoJogador, Vector2.left);
+
+        if (usarMapaFixo)
+        {
+            CriarGameplayFixo(celulaJogador, posicaoJogador);
+            return;
+        }
+
         CriarPuzzleDeSaida(celulaJogador);
+
+        for (int i = 0; i < quantidadeCobras; i++)
+        {
+            CriarInimigo(cobraPrefab, $"Cobra {i + 1}", posicaoJogador, Vector2.right);
+        }
+
+        for (int i = 0; i < quantidadeCientistas; i++)
+        {
+            CriarInimigo(cientistaPrefab, $"Cientista {i + 1}", posicaoJogador, Vector2.left);
+        }
     }
 
 
     private Vector2Int ObterCelulaInicialDoJogador()
     {
+        if (celulaJogadorFixa.HasValue && IsFloor(celulaJogadorFixa.Value))
+        {
+            return celulaJogadorFixa.Value;
+        }
+
         if (rooms.Count > 0)
         {
             Vector2Int centro = GetRoomCenter(rooms[0]);
@@ -2024,9 +2076,21 @@ public class ProceduralMap : MonoBehaviour
         jogador.transform.position = posicao;
         jogador.transform.rotation = Quaternion.identity;
         jogador.transform.localScale = new Vector3(0.1f, 0.1f, 1f);
+        ConfigurarOrdemVisual(jogador, 20);
         ConfigurarFisicaDoJogador(jogador);
         jogador.transform.position = CalcularPosicaoComColliderNoCentro(jogador, posicao);
         return jogador;
+    }
+
+
+    private static void ConfigurarOrdemVisual(GameObject objeto, int sortingOrder)
+    {
+        SpriteRenderer renderer = objeto.GetComponent<SpriteRenderer>();
+
+        if (renderer != null)
+        {
+            renderer.sortingOrder = sortingOrder;
+        }
     }
 
 
@@ -2077,6 +2141,18 @@ public class ProceduralMap : MonoBehaviour
             Mathf.Max(mapWidth, mapHeight)
         );
 
+        CriarInimigoEmPosicao(prefab, nome, posicao, posicaoJogador, direcaoInicial);
+    }
+
+
+    private void CriarInimigoEmPosicao(GameObject prefab, string nome, Vector2 posicao, Vector2 posicaoJogador, Vector2 direcaoInicial)
+    {
+        if (prefab == null)
+        {
+            Debug.LogWarning($"ProceduralMap: prefab de {nome} não foi configurado.");
+            return;
+        }
+
         GameObject inimigoObjeto = Instantiate(prefab, posicao, Quaternion.identity, objetosGerados);
         inimigoObjeto.name = nome;
         inimigoObjeto.transform.localScale = new Vector3(0.1f, 0.1f, 1f);
@@ -2093,6 +2169,60 @@ public class ProceduralMap : MonoBehaviour
             }
 
             inimigo.ConfigurarPatrulhaProcedural(this, direcaoParaLongeDoJogador);
+            AplicarDificuldadeNoInimigo(inimigo, nome);
+        }
+    }
+
+
+    private void AplicarDificuldadeNoInimigo(Inimigo inimigo, string nome)
+    {
+        if (inimigo == null)
+        {
+            return;
+        }
+
+        bool cobra = nome.IndexOf("Cobra", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        float fase = Mathf.Max(0, fasePrincipalAtual - 1);
+
+        inimigo.distanciaVisao = cobra
+            ? Mathf.Clamp(4.4f + fase * 0.08f, 4.4f, 5.8f)
+            : Mathf.Clamp(3.8f + fase * 0.08f, 3.8f, 5.2f);
+
+        inimigo.anguloVisao = cobra ? 82f : 78f;
+        inimigo.segmentosVisao = 14;
+    }
+
+
+    private void CriarGameplayFixo(Vector2Int celulaJogador, Vector2 posicaoJogador)
+    {
+        SaidaPuzzle saida = null;
+
+        if (celulaSaidaFixa.HasValue)
+        {
+            saida = CriarSaidaPuzzle(celulaSaidaFixa.Value);
+            saida.ConfigurarRequisitos(botoesFixos.Count);
+        }
+
+        for (int i = 0; i < botoesFixos.Count; i++)
+        {
+            CriarBotaoPuzzle(botoesFixos[i], saida);
+        }
+
+        for (int i = 0; i < caixasFixas.Count; i++)
+        {
+            CriarCaixaPuzzle(caixasFixas[i]);
+        }
+
+        foreach (Vector2Int celula in cobrasFixas)
+        {
+            Vector2 posicao = ObterCentroMundo(celula);
+            CriarInimigoEmPosicao(cobraPrefab, "Cobra Tutorial", posicao, posicaoJogador, (posicaoJogador - posicao).normalized);
+        }
+
+        foreach (Vector2Int celula in cientistasFixos)
+        {
+            Vector2 posicao = ObterCentroMundo(celula);
+            CriarInimigoEmPosicao(cientistaPrefab, "Cientista Tutorial", posicao, posicaoJogador, (posicaoJogador - posicao).normalized);
         }
     }
 
@@ -2108,15 +2238,21 @@ public class ProceduralMap : MonoBehaviour
         Vector2Int celulaSaida = ObterCelulaMaisDistanteDe(celulaJogador, ocupadas);
         ocupadas.Add(celulaSaida);
 
-        Vector2Int celulaBotao = ObterCelulaLivreAleatoria(ocupadas, celulaJogador, 5f);
-        ocupadas.Add(celulaBotao);
-
-        Vector2Int celulaCaixa = ObterCelulaLivreProxima(celulaBotao, ocupadas, 4);
-        ocupadas.Add(celulaCaixa);
-
         SaidaPuzzle saida = CriarSaidaPuzzle(celulaSaida);
-        CriarBotaoPuzzle(celulaBotao, saida);
-        CriarCaixaPuzzle(celulaCaixa);
+        int botoes = Mathf.Max(0, quantidadeBotoesPuzzle);
+        saida.ConfigurarRequisitos(botoes);
+
+        for (int i = 0; i < botoes; i++)
+        {
+            Vector2Int celulaBotao = ObterCelulaLivreAleatoria(ocupadas, celulaJogador, 5f);
+            ocupadas.Add(celulaBotao);
+
+            Vector2Int celulaCaixa = ObterCelulaLivreProxima(celulaBotao, ocupadas, 4);
+            ocupadas.Add(celulaCaixa);
+
+            CriarBotaoPuzzle(celulaBotao, saida);
+            CriarCaixaPuzzle(celulaCaixa);
+        }
     }
 
 
@@ -2207,7 +2343,7 @@ public class ProceduralMap : MonoBehaviour
         CentralizarRenderer(saidaObjeto, ObterCentroMundo(celula));
 
         BoxCollider2D colisor = saidaObjeto.AddComponent<BoxCollider2D>();
-        colisor.size = Vector2.one * 0.9f;
+        ConfigurarBoxColliderMundo(colisor, ObterCentroMundo(celula), Vector2.one * 0.9f, false);
 
         return saidaObjeto.AddComponent<SaidaPuzzle>();
     }
@@ -2215,24 +2351,21 @@ public class ProceduralMap : MonoBehaviour
 
     private BotaoPuzzle CriarBotaoPuzzle(Vector2Int celula, SaidaPuzzle saida)
     {
-        GameObject botaoObjeto = CriarObjetoComSprite("Botao Puzzle", botaoSprite, ObterCentroMundo(celula), 2);
+        GameObject botaoObjeto = CriarObjetoComSprite("Botao Puzzle", botaoSprite, ObterCentroMundo(celula), 3);
         BoxCollider2D colisor = botaoObjeto.AddComponent<BoxCollider2D>();
-        colisor.size = Vector2.one * 0.85f;
-        colisor.isTrigger = true;
+        ConfigurarBoxColliderMundo(colisor, ObterCentroMundo(celula), Vector2.one * 0.85f, true);
 
         BotaoPuzzle botao = botaoObjeto.AddComponent<BotaoPuzzle>();
-        botao.spriteSolto = botaoSprite;
-        botao.spritePressionado = botaoPressionadoSprite;
-        botao.saida = saida;
+        botao.Configurar(botaoSprite, botaoPressionadoSprite, saida);
         return botao;
     }
 
 
     private void CriarCaixaPuzzle(Vector2Int celula)
     {
-        GameObject caixaObjeto = CriarObjetoComSprite("Caixa Arrastavel", caixaSprite, ObterCentroMundo(celula), 4);
+        GameObject caixaObjeto = CriarObjetoComSprite("Caixa Arrastavel", caixaSprite, ObterCentroMundo(celula), 5);
         BoxCollider2D colisor = caixaObjeto.AddComponent<BoxCollider2D>();
-        colisor.size = Vector2.one * 0.85f;
+        ConfigurarBoxColliderMundo(colisor, ObterCentroMundo(celula), Vector2.one * 0.78f, false);
 
         Rigidbody2D corpo = caixaObjeto.AddComponent<Rigidbody2D>();
         corpo.bodyType = RigidbodyType2D.Dynamic;
@@ -2257,6 +2390,23 @@ public class ProceduralMap : MonoBehaviour
         AjustarSpriteParaCelula(objeto.transform, renderer.sprite, tamanhoVisualPuzzle);
         CentralizarRenderer(objeto, posicao);
         return objeto;
+    }
+
+
+    private static void ConfigurarBoxColliderMundo(BoxCollider2D colisor, Vector3 centroMundo, Vector2 tamanhoMundo, bool trigger)
+    {
+        if (colisor == null)
+        {
+            return;
+        }
+
+        Vector3 escala = colisor.transform.lossyScale;
+        float escalaX = Mathf.Max(0.0001f, Mathf.Abs(escala.x));
+        float escalaY = Mathf.Max(0.0001f, Mathf.Abs(escala.y));
+
+        colisor.size = new Vector2(tamanhoMundo.x / escalaX, tamanhoMundo.y / escalaY);
+        colisor.offset = colisor.transform.InverseTransformPoint(centroMundo);
+        colisor.isTrigger = trigger;
     }
 
 

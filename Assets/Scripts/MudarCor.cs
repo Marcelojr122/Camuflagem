@@ -4,19 +4,16 @@ using UnityEngine;
 public class MudarCor : MonoBehaviour
 {
     private const string PropriedadeHue = "_Hue";
-    private const float PassoHue = 1f;
+    private const float VelocidadeHueGrausPorSegundo = 420f;
 
     private Renderer meuRender;
     private Material materialDoJogador;
     private Camuflar camuflar;
-    private readonly List<Renderer> tapetesEmContato = new List<Renderer>();
-    private Renderer tapeteAtual;
+    private readonly List<TapeteHue> tapetesEmContato = new List<TapeteHue>();
+    private TapeteHue tapeteAtual;
     private float hueOriginal;
-    private float tempo = 0f;
 
-    [Range(0, 1)] public float velocidadeMudaCor = 0.01f;
-
-    public Renderer TapeteAtual => tapeteAtual;
+    public TapeteHue TapeteAtual => tapeteAtual;
 
     private void Awake()
     {
@@ -43,20 +40,11 @@ public class MudarCor : MonoBehaviour
             return;
         }
 
-        tempo += Time.deltaTime;
-
-        if (tempo < velocidadeMudaCor)
-        {
-            return;
-        }
-
-        tempo = 0f;
-
         float hueAlvo = camuflar.EstaCamuflado && tapeteAtual != null
-            ? LerHueDoTapete(tapeteAtual)
+            ? tapeteAtual.Hue
             : hueOriginal;
 
-        AproximarHue(materialDoJogador, hueAlvo);
+        AproximarHue(materialDoJogador, hueAlvo, VelocidadeHueGrausPorSegundo * Time.deltaTime);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -76,26 +64,26 @@ public class MudarCor : MonoBehaviour
             return;
         }
 
-        Renderer renderDoTapete = collision.GetComponent<Renderer>();
+        TapeteHue hueDoTapete = collision.GetComponent<TapeteHue>();
 
-        if (renderDoTapete == null)
+        if (hueDoTapete == null)
         {
             return;
         }
 
-        tapetesEmContato.Remove(renderDoTapete);
+        tapetesEmContato.Remove(hueDoTapete);
         tapeteAtual = tapetesEmContato.Count > 0 ? tapetesEmContato[tapetesEmContato.Count - 1] : null;
         camuflar.DefinirNoTapete(tapeteAtual != null);
     }
 
     public bool EstaComHueDoTapete(float tolerancia)
     {
-        if (materialDoJogador == null || tapeteAtual == null || !TemHue(materialDoJogador) || !TemHue(tapeteAtual.sharedMaterial))
+        if (materialDoJogador == null || tapeteAtual == null || !TemHue(materialDoJogador))
         {
             return false;
         }
 
-        float diferenca = Mathf.Abs(Mathf.DeltaAngle(materialDoJogador.GetFloat(PropriedadeHue), LerHueDoTapete(tapeteAtual)));
+        float diferenca = Mathf.Abs(Mathf.DeltaAngle(materialDoJogador.GetFloat(PropriedadeHue), tapeteAtual.Hue));
         return diferenca <= tolerancia;
     }
 
@@ -106,19 +94,19 @@ public class MudarCor : MonoBehaviour
             return;
         }
 
-        Renderer renderDoTapete = collision.GetComponent<Renderer>();
+        TapeteHue hueDoTapete = collision.GetComponent<TapeteHue>();
 
-        if (renderDoTapete == null || !TemHue(renderDoTapete.sharedMaterial))
+        if (hueDoTapete == null)
         {
             return;
         }
 
-        if (!tapetesEmContato.Contains(renderDoTapete))
+        if (!tapetesEmContato.Contains(hueDoTapete))
         {
-            tapetesEmContato.Add(renderDoTapete);
+            tapetesEmContato.Add(hueDoTapete);
         }
 
-        tapeteAtual = renderDoTapete;
+        tapeteAtual = hueDoTapete;
         camuflar.DefinirNoTapete(true);
     }
 
@@ -127,15 +115,10 @@ public class MudarCor : MonoBehaviour
         return material != null && material.HasProperty(PropriedadeHue);
     }
 
-    private static float LerHueDoTapete(Renderer renderDoTapete)
-    {
-        return renderDoTapete.sharedMaterial.GetFloat(PropriedadeHue);
-    }
-
-    private static void AproximarHue(Material material, float hueAlvo)
+    private static void AproximarHue(Material material, float hueAlvo, float passo)
     {
         float hueAtual = material.GetFloat(PropriedadeHue);
-        float proximoHue = Mathf.MoveTowardsAngle(hueAtual, hueAlvo, PassoHue);
+        float proximoHue = Mathf.MoveTowardsAngle(hueAtual, hueAlvo, passo);
         material.SetFloat(PropriedadeHue, Mathf.Repeat(proximoHue, 360f));
     }
 }

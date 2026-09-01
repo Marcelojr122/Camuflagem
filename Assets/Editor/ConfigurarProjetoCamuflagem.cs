@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Tilemaps;
 
 public static class ConfigurarProjetoCamuflagem
@@ -46,8 +47,8 @@ public static class ConfigurarProjetoCamuflagem
             1.15f,
             2.35f,
             4f,
-            28f,
-            8f,
+            4.4f,
+            6f,
             materialVisao);
 
         GameObject cientista = CriarOuAtualizarInimigo(
@@ -57,7 +58,7 @@ public static class ConfigurarProjetoCamuflagem
             2.05f,
             3.4f,
             6f,
-            22f,
+            3.8f,
             7f,
             materialVisao);
 
@@ -345,7 +346,7 @@ public static class ConfigurarProjetoCamuflagem
         {
             Sprite idleBaixo = CarregarSprite("C_D_1");
             spriteRenderer.sprite = idleBaixo != null ? idleBaixo : spriteRenderer.sprite;
-            spriteRenderer.sortingOrder = 2;
+            spriteRenderer.sortingOrder = 20;
         }
 
         Animator animator = jogador.GetComponent<Animator>();
@@ -426,7 +427,7 @@ public static class ConfigurarProjetoCamuflagem
         rigidbody.freezeRotation = true;
 
         BoxCollider2D boxCollider = ObterOuAdicionar<BoxCollider2D>(objeto);
-        boxCollider.isTrigger = true;
+        boxCollider.isTrigger = false;
 
         if (idleBaixo != null)
         {
@@ -445,9 +446,10 @@ public static class ConfigurarProjetoCamuflagem
         inimigo.intervaloTrocaDestino = 2.4f;
         inimigo.raioCaptura = 0.65f;
         inimigo.direcaoInicial = Vector2.right;
-        inimigo.anguloVisao = 28f;
+        inimigo.anguloVisao = nome == "Cobra" ? 82f : 78f;
         inimigo.velocidadeGiroVisao = 140f;
         inimigo.toleranciaHue = 2f;
+        inimigo.segmentosVisao = 14;
 
         Transform campo = objeto.transform.Find("Campo de Visao");
 
@@ -646,7 +648,7 @@ public static class ConfigurarProjetoCamuflagem
             mapa.wallLeftTile = CarregarAsset<TileBase>("e8b60b4f87305824e96c337653be55ab");
             mapa.wallRightTile = CarregarAsset<TileBase>("732cc574cfeb53445aa0cd540a046c9a");
             mapa.wallBottomTile = CarregarAsset<TileBase>("82b17fc6fa87f394591a6d1115663412");
-            mapa.wallTile = CarregarAsset<TileBase>("5b32a97254d088c4483a2d316b222305");
+            mapa.wallTile = CarregarAsset<TileBase>("b541833de1d94350bb1a9bb589bed737");
             mapa.wallCornerTopLeftTile = CarregarAsset<TileBase>("9818d8bf7efce2643924c62bd30710bd");
             mapa.wallCornerTopRightTile = CarregarAsset<TileBase>("2384a050e39ebc245a868d51adea4dd9");
             mapa.wallCornerBottomLeftTile = CarregarAsset<TileBase>("b51a1748557e506459197ace75d23a2f");
@@ -665,16 +667,16 @@ public static class ConfigurarProjetoCamuflagem
             mapa.cobraPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Inimigos/Cobra.prefab");
             mapa.cientistaPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Inimigos/Cientista.prefab");
             mapa.cameraPrincipal = camera;
+            mapa.usarGerenciadorDeFases = false;
+            mapa.quantidadeCobras = 1;
+            mapa.quantidadeCientistas = 1;
+            mapa.quantidadeBotoesPuzzle = 1;
             mapa.caixaSprite = CarregarAsset<Sprite>("72c4ad8987f30ad489746c9e346c528f");
             mapa.botaoSprite = CarregarAsset<Sprite>("aea5b74f94051924793a1e8908bfb376");
             mapa.botaoPressionadoSprite = CarregarAsset<Sprite>("9fbe5c8e6fb6a064d9892258566e7bbc");
-            mapa.carpetMaterials = new[]
-            {
-                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial.mat"),
-                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 1.mat"),
-                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 2.mat"),
-                AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/TapeteMaterial 3.mat")
-            };
+            mapa.ConfigurarFasePrincipalDoJogo(1);
+            mapa.usarGerenciadorDeFases = false;
+            mapa.quantidadeCientistas = 1;
 
             mapa.GenerateMap();
             ValidarCondicao(mapa.TemMapaGerado, "mapa procedural nao gerou chao valido");
@@ -684,9 +686,16 @@ public static class ConfigurarProjetoCamuflagem
             ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<SaidaPuzzle>() != null, "saida do puzzle nao foi criada no mapa procedural");
             ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<BotaoPuzzle>() != null, "botao do puzzle nao foi criado no mapa procedural");
             ValidarCondicao(UnityEngine.Object.FindFirstObjectByType<CaixaArrastavel>() != null, "caixa arrastavel nao foi criada no mapa procedural");
-            ValidarCondicao(tilemap.GetComponent<TilemapCollider2D>() != null, "tilemap procedural nao recebeu TilemapCollider2D");
+            ValidarCondicao(GameObject.Find("Objetos Gerados")?.GetComponentsInChildren<BoxCollider2D>().Length > 0, "colisores de parede/puzzle nao foram criados");
             ValidarCondicao(camera.GetComponent<CameraSeguirJogador>() != null, "camera nao recebeu CameraSeguirJogador");
+            ValidarTilemapSemVazamentoDeCor(tilemap);
+            ValidarPreenchimentoVisualDoMapa(tilemap);
+            ValidarFundoVisualDoMapa();
+            ValidarRenderDaCena(camera);
+            ValidarTapetesComSpriteHue();
+            ValidarJogadorAcimaDaCaixa();
             ValidarCampoDeVisaoEstrito();
+            SalvarPreviewValidacao(camera);
 
             Debug.Log("VALIDACAO_PROCEDURAL_OK");
 
@@ -728,6 +737,126 @@ public static class ConfigurarProjetoCamuflagem
         {
             throw new InvalidOperationException(mensagem);
         }
+    }
+
+    private static void ValidarTilemapSemVazamentoDeCor(Tilemap tilemap)
+    {
+        int tilesDesenhados = 0;
+
+        foreach (Vector3Int posicao in tilemap.cellBounds.allPositionsWithin)
+        {
+            if (!tilemap.HasTile(posicao))
+            {
+                continue;
+            }
+
+            tilesDesenhados++;
+            Color cor = tilemap.GetColor(posicao);
+            bool corNeutra = Mathf.Abs(cor.r - 1f) < 0.01f
+                && Mathf.Abs(cor.g - 1f) < 0.01f
+                && Mathf.Abs(cor.b - 1f) < 0.01f;
+            ValidarCondicao(corNeutra, "tilemap recebeu cor de tapete e pode deixar o mapa inteiro vermelho");
+        }
+
+        ValidarCondicao(tilesDesenhados > 0, "tilemap nao desenhou chao ou paredes");
+    }
+
+    private static void ValidarFundoVisualDoMapa()
+    {
+        GameObject fundo = GameObject.Find("Fundo Visual Procedural");
+        SpriteRenderer renderer = fundo != null ? fundo.GetComponent<SpriteRenderer>() : null;
+        ValidarCondicao(renderer != null, "mapa procedural nao criou fundo visual neutro");
+        ValidarCondicao(renderer.sortingOrder == -1, "fundo visual procedural esta na ordem errada");
+    }
+
+    private static void ValidarPreenchimentoVisualDoMapa(Tilemap tilemap)
+    {
+        ValidarCondicao(tilemap.HasTile(new Vector3Int(0, 0, 0)), "mapa procedural deixou vazio visual no canto inferior");
+        ValidarCondicao(tilemap.HasTile(new Vector3Int(39, 29, 0)), "mapa procedural deixou vazio visual no canto superior");
+    }
+
+    private static void ValidarRenderDaCena(Camera camera)
+    {
+        Light2D[] luzes = UnityEngine.Object.FindObjectsByType<Light2D>(FindObjectsSortMode.None);
+        bool temLuzGlobal = luzes.Any(luz => luz.lightType == Light2D.LightType.Global && luz.intensity > 0f);
+        ValidarCondicao(temLuzGlobal, "cena procedural sem Global Light 2D para renderizar tiles lit");
+        ValidarCondicao(camera.backgroundColor.r < 0.2f, "camera procedural esta com fundo avermelhado");
+    }
+
+    private static void ValidarTapetesComSpriteHue()
+    {
+        TapeteHue[] tapetes = UnityEngine.Object.FindObjectsByType<TapeteHue>(FindObjectsSortMode.None);
+        ValidarCondicao(tapetes.Length > 0, "nenhum tapete com TapeteHue foi criado");
+
+        foreach (TapeteHue tapete in tapetes)
+        {
+            SpriteRenderer renderer = tapete.GetComponentInChildren<SpriteRenderer>();
+            ValidarCondicao(renderer != null, "tapete procedural sem SpriteRenderer visual");
+            ValidarCondicao(renderer.sprite != null, "tapete procedural sem sprite visual");
+            ValidarCondicao(renderer.sharedMaterial != null && renderer.sharedMaterial.HasProperty("_Hue"), "tapete procedural sem material SpriteHue");
+        }
+    }
+
+    private static void ValidarJogadorAcimaDaCaixa()
+    {
+        GameObject jogador = GameObject.FindGameObjectWithTag("Player");
+        CaixaArrastavel caixa = UnityEngine.Object.FindFirstObjectByType<CaixaArrastavel>();
+
+        if (jogador == null || caixa == null)
+        {
+            return;
+        }
+
+        SpriteRenderer rendererJogador = jogador.GetComponent<SpriteRenderer>();
+        SpriteRenderer rendererCaixa = caixa.GetComponent<SpriteRenderer>();
+        ValidarCondicao(rendererJogador != null && rendererCaixa != null, "jogador ou caixa sem SpriteRenderer");
+        ValidarCondicao(rendererJogador.sortingOrder > rendererCaixa.sortingOrder, "jogador nao esta sendo desenhado acima da caixa");
+    }
+
+    private static void SalvarPreviewValidacao(Camera camera)
+    {
+        string pastaLogs = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+        Directory.CreateDirectory(pastaLogs);
+        string caminho = Path.Combine(pastaLogs, "preview-procedural-fase1.png");
+
+        RenderTexture texturaAnterior = RenderTexture.active;
+        RenderTexture alvoAnterior = camera.targetTexture;
+        RenderTexture textura = new RenderTexture(960, 540, 24);
+        Texture2D imagem = new Texture2D(960, 540, TextureFormat.RGBA32, false);
+
+        camera.targetTexture = textura;
+        RenderTexture.active = textura;
+        GL.Clear(true, true, camera.backgroundColor);
+        camera.Render();
+        imagem.ReadPixels(new Rect(0, 0, 960, 540), 0, 0);
+        imagem.Apply();
+        File.WriteAllBytes(caminho, imagem.EncodeToPNG());
+        ValidarPreviewSemVermelhoExcessivo(imagem);
+
+        camera.targetTexture = alvoAnterior;
+        RenderTexture.active = texturaAnterior;
+        UnityEngine.Object.DestroyImmediate(imagem);
+        textura.Release();
+        UnityEngine.Object.DestroyImmediate(textura);
+
+        Debug.Log($"PREVIEW_PROCEDURAL_OK: {caminho}");
+    }
+
+    private static void ValidarPreviewSemVermelhoExcessivo(Texture2D imagem)
+    {
+        Color32[] pixels = imagem.GetPixels32();
+        int vermelhos = 0;
+
+        foreach (Color32 pixel in pixels)
+        {
+            if (pixel.r > 120 && pixel.g < 70 && pixel.b < 70 && pixel.a > 200)
+            {
+                vermelhos++;
+            }
+        }
+
+        float proporcao = vermelhos / (float)pixels.Length;
+        ValidarCondicao(proporcao < 0.05f, $"preview procedural ainda esta com vermelho demais ({proporcao:P1})");
     }
 
     private static void ValidarCampoDeVisaoEstrito()

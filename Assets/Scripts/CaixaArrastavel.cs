@@ -4,6 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class CaixaArrastavel : MonoBehaviour
 {
+    private const float IntervaloSomEmpurrando = 0.35f;
+    private float proximoSomEmpurrando;
+
     private void Awake()
     {
         Rigidbody2D corpo = GetComponent<Rigidbody2D>();
@@ -15,5 +18,23 @@ public class CaixaArrastavel : MonoBehaviour
 
         Collider2D colisor = GetComponent<Collider2D>();
         colisor.isTrigger = false;
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (!collision.collider.CompareTag("Player") || Time.unscaledTime < proximoSomEmpurrando)
+        {
+            return;
+        }
+
+        Rigidbody2D corpo = GetComponent<Rigidbody2D>();
+
+        if (corpo != null && corpo.linearVelocity.sqrMagnitude < 0.02f)
+        {
+            return;
+        }
+
+        proximoSomEmpurrando = Time.unscaledTime + IntervaloSomEmpurrando;
+        GerenciadorTelasJogo.TocarPushBox();
     }
 }

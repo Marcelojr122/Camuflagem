@@ -10,12 +10,21 @@ public class BotaoPuzzle : MonoBehaviour
 
     private SpriteRenderer spriteRenderer;
     private int caixasEmCima;
+    private bool pressionadoAnterior;
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         GetComponent<Collider2D>().isTrigger = true;
-        AtualizarVisual();
+        AtualizarVisual(true);
+    }
+
+    public void Configurar(Sprite novoSpriteSolto, Sprite novoSpritePressionado, SaidaPuzzle novaSaida)
+    {
+        spriteSolto = novoSpriteSolto;
+        spritePressionado = novoSpritePressionado;
+        saida = novaSaida;
+        AtualizarVisual(true);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -40,7 +49,7 @@ public class BotaoPuzzle : MonoBehaviour
         AtualizarVisual();
     }
 
-    private void AtualizarVisual()
+    private void AtualizarVisual(bool forcarNotificacao = false)
     {
         bool pressionado = caixasEmCima > 0;
 
@@ -54,9 +63,11 @@ public class BotaoPuzzle : MonoBehaviour
             spriteRenderer.sprite = pressionado && spritePressionado != null ? spritePressionado : spriteSolto;
         }
 
-        if (saida != null)
+        if (saida != null && (forcarNotificacao || pressionado != pressionadoAnterior))
         {
-            saida.DefinirAberta(pressionado);
+            saida.RegistrarBotao(pressionado);
         }
+
+        pressionadoAnterior = pressionado;
     }
 }
